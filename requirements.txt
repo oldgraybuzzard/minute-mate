@@ -1,0 +1,23 @@
+# Core Flask dependencies
+flask==3.0.0
+flask-cors==4.0.0
+werkzeug==3.0.1
+
+# File handling and validation
+pydub==0.25.1
+python-magic==0.4.27
+
+# AI and transcription
+openai-whisper==20231117
+torch==2.1.0
+torchaudio==2.1.0
+
+# Document processing
+python-docx==1.1.0
+
+# NLP processing
+spacy==3.7.2
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
