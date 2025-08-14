@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinuteMate Demo - Features Overview</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .demo-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .demo-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .demo-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: var(--gray-50);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .feature-card h3 {
+            color: var(--gray-900);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-card p {
+            color: var(--gray-600);
+            line-height: 1.6;
+        }
+        
+        .demo-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .demo-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .demo-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .demo-btn.secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+        
+        .demo-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .status-indicator.online {
+            background: rgb(16 185 129 / 0.1);
+            color: var(--secondary-color);
+        }
+        
+        .status-indicator.offline {
+            background: rgb(239 68 68 / 0.1);
+            color: var(--danger-color);
+        }
+        
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .tech-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <h1>MinuteMate Demo</h1>
+            </div>
+            <p class="tagline">Explore the features and capabilities of our AI-powered meeting minutes generator</p>
+            <div class="demo-buttons">
+                <a href="index.html" class="demo-btn primary">
+                    <i class="fas fa-play"></i>
+                    Try Live Demo
+                </a>
+                <button class="demo-btn secondary" onclick="checkSystemStatus()">
+                    <i class="fas fa-heartbeat"></i>
+                    Check System Status
+                </button>
+            </div>
+            <div id="system-status" class="status-indicator offline" style="margin-top: 15px;">
+                <i class="fas fa-circle"></i>
+                <span>Checking system status...</span>
+            </div>
+        </header>
+
+        <!-- Features Overview -->
+        <section class="demo-section">
+            <h2><i class="fas fa-star"></i> Key Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><i class="fas fa-microphone"></i> AI Transcription</h3>
+                    <p>Advanced speech-to-text using OpenAI Whisper with support for multiple languages and audio/video formats.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-search"></i> Smart Parsing</h3>
+                    <p>Intelligent extraction of motions, votes, discussions, and speaker identification using NLP techniques.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-file-alt"></i> Professional Formatting</h3>
+                    <p>Automatic formatting according to Robert's Rules of Order or custom organizational standards.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-download"></i> Multiple Exports</h3>
+                    <p>Export to DOCX, PDF formats with professional styling and customizable templates.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-shield-alt"></i> Secure Processing</h3>
+                    <p>Enterprise-grade security with file validation, malicious content scanning, and secure storage.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-chart-line"></i> Real-time Monitoring</h3>
+                    <p>Live progress tracking, comprehensive logging, and system health monitoring.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Specifications -->
+        <section class="demo-section">
+            <h2><i class="fas fa-cogs"></i> Technical Specifications</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><i class="fas fa-file-audio"></i> Supported Formats</h3>
+                    <p><strong>Audio:</strong> MP3, WAV, FLAC, M4A, AAC, OGG, WMA</p>
+                    <p><strong>Video:</strong> MP4, AVI, MOV, MKV, WMV, FLV, WebM</p>
+                    <p><strong>Max Size:</strong> 500MB per file</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-language"></i> Language Support</h3>
+                    <p>Auto-detection and support for English, Spanish, French, German, Italian, Portuguese, and more.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-clock"></i> Processing Time</h3>
+                    <p>Typical processing time: 2-5 minutes for a 1-hour meeting recording, depending on file size and complexity.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-server"></i> Infrastructure</h3>
+                    <p>Built on Flask with Redis caching, PostgreSQL database, and scalable microservices architecture.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technology Stack -->
+        <section class="demo-section">
+            <h2><i class="fas fa-code"></i> Technology Stack</h2>
+            <div class="feature-card">
+                <h3><i class="fas fa-layer-group"></i> Backend Technologies</h3>
+                <div class="tech-stack">
+                    <span class="tech-tag">Python 3.8+</span>
+                    <span class="tech-tag">Flask</span>
+                    <span class="tech-tag">OpenAI Whisper</span>
+                    <span class="tech-tag">spaCy NLP</span>
+                    <span class="tech-tag">python-docx</span>
+                    <span class="tech-tag">PostgreSQL</span>
+                    <span class="tech-tag">Redis</span>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fas fa-paint-brush"></i> Frontend Technologies</h3>
+                <div class="tech-stack">
+                    <span class="tech-tag">HTML5</span>
+                    <span class="tech-tag">CSS3</span>
+                    <span class="tech-tag">Vanilla JavaScript</span>
+                    <span class="tech-tag">Font Awesome</span>
+                    <span class="tech-tag">Responsive Design</span>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <h3><i class="fas fa-tools"></i> DevOps & Monitoring</h3>
+                <div class="tech-stack">
+                    <span class="tech-tag">Docker</span>
+                    <span class="tech-tag">Nginx</span>
+                    <span class="tech-tag">Prometheus</span>
+                    <span class="tech-tag">Grafana</span>
+                    <span class="tech-tag">ELK Stack</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Documentation -->
+        <section class="demo-section">
+            <h2><i class="fas fa-book"></i> API Endpoints</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><i class="fas fa-upload"></i> File Upload</h3>
+                    <p><code>POST /api/upload</code></p>
+                    <p>Upload audio/video files for processing with validation and security checks.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-chart-bar"></i> Job Status</h3>
+                    <p><code>GET /api/status/{job_id}</code></p>
+                    <p>Real-time status updates with progress tracking and stage information.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-download"></i> Download Results</h3>
+                    <p><code>GET /api/download/{job_id}</code></p>
+                    <p>Download processed meeting minutes in DOCX format.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3><i class="fas fa-heartbeat"></i> Health Monitoring</h3>
+                    <p><code>GET /api/health/detailed</code></p>
+                    <p>Comprehensive system health metrics and performance data.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Getting Started -->
+        <section class="demo-section">
+            <h2><i class="fas fa-rocket"></i> Getting Started</h2>
+            <div class="feature-card">
+                <h3><i class="fas fa-list-ol"></i> Quick Start Guide</h3>
+                <ol style="color: var(--gray-700); line-height: 1.8; margin-left: 20px;">
+                    <li>Click "Try Live Demo" to access the main interface</li>
+                    <li>Drag and drop or select an audio/video file of your meeting</li>
+                    <li>Choose your preferred language and output format</li>
+                    <li>Click "Start Processing" and monitor real-time progress</li>
+                    <li>Download your professionally formatted meeting minutes</li>
+                </ol>
+                
+                <div class="demo-buttons">
+                    <a href="index.html" class="demo-btn primary">
+                        <i class="fas fa-play"></i>
+                        Start Demo
+                    </a>
+                    <button class="demo-btn secondary" onclick="showApiDocs()">
+                        <i class="fas fa-code"></i>
+                        View API Docs
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 MinuteMate. Powered by AI for better meetings.</p>
+            <div class="footer-links">
+                <a href="index.html">Live Demo</a>
+                <a href="#" onclick="showApiDocs()">API Documentation</a>
+                <a href="#" onclick="checkSystemStatus()">System Status</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        async function checkSystemStatus() {
+            const statusEl = document.getElementById('system-status');
+            const statusIcon = statusEl.querySelector('i');
+            const statusText = statusEl.querySelector('span');
+            
+            statusText.textContent = 'Checking...';
+            statusIcon.className = 'fas fa-spinner fa-spin';
+            
+            try {
+                const response = await fetch('http://localhost:5000/');
+                if (response.ok) {
+                    statusEl.className = 'status-indicator online';
+                    statusIcon.className = 'fas fa-circle';
+                    statusText.textContent = 'System Online';
+                } else {
+                    throw new Error('Server responded with error');
+                }
+            } catch (error) {
+                statusEl.className = 'status-indicator offline';
+                statusIcon.className = 'fas fa-circle';
+                statusText.textContent = 'System Offline';
+            }
+        }
+        
+        function showApiDocs() {
+            alert('API Documentation:\n\nMain endpoints:\n• POST /api/upload - Upload files\n• GET /api/status/{job_id} - Check status\n• GET /api/download/{job_id} - Download results\n• GET /api/health/detailed - System health\n\nFor full documentation, visit the API at http://localhost:5000/');
+        }
+        
+        // Check system status on page load
+        document.addEventListener('DOMContentLoaded', checkSystemStatus);
+    </script>
+</body>
+</html>

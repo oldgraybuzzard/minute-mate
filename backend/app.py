@@ -7,7 +7,7 @@ import os
 import logging
 import time
 from datetime import datetime
-from flask import Flask, request, jsonify, send_file, g
+from flask import Flask, request, jsonify, send_file, g, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -213,6 +213,18 @@ def monitoring_dashboard():
         basic_health = health_monitor.get_health_status()
         response = create_response(True, 'Basic dashboard data retrieved', {'health': basic_health})
         return jsonify(response), 200
+
+# Frontend serving routes
+@app.route('/frontend')
+@app.route('/frontend/')
+def serve_frontend():
+    """Serve the main frontend page"""
+    return send_from_directory('../frontend', 'index.html')
+
+@app.route('/frontend/<path:filename>')
+def serve_frontend_files(filename):
+    """Serve frontend static files"""
+    return send_from_directory('../frontend', filename)
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
