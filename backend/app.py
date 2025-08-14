@@ -5,8 +5,9 @@ Main application file for the MinuteMate AI-powered meeting minutes generator.
 
 import os
 import logging
+import time
 from datetime import datetime
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, g
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -19,6 +20,9 @@ from utils import (
 from job_tracker import job_tracker, JobStatus
 from file_manager import FileStorageManager, FileValidationError, FileStorageError
 from scheduler import create_cleanup_scheduler
+from logging_config import setup_logging
+from error_handlers import ErrorHandler, ValidationError, FileProcessingError, SecurityError
+from middleware import setup_middleware, health_monitor
 
 # Import processing modules (will be created next)
 # from modules.transcriber import AudioTranscriber
@@ -28,27 +32,37 @@ from scheduler import create_cleanup_scheduler
 # from modules.user_profiles import UserProfileManager
 
 def create_app():
-    """Application factory pattern"""
+    """Application factory pattern with enhanced error handling and logging"""
     app = Flask(__name__)
 
     # Load configuration
     config_class = get_config()
     app.config.from_object(config_class)
 
+    # Setup enhanced logging first
+    logging_manager = setup_logging(app.config)
+    app.logging_manager = logging_manager
+
     # Enable CORS for frontend integration
     CORS(app)
 
-    # Setup logging
-    logging.basicConfig(
-        level=getattr(logging, app.config.get('LOG_LEVEL', 'INFO')),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    # Setup error handling
+    error_handler = ErrorHandler(app)
+    app.error_handler = error_handler
+
+    # Setup middleware for request logging and monitoring
+    middleware = setup_middleware(app)
+    app.middleware = middleware
 
     # Ensure required directories exist
     ensure_directory_exists(app.config['UPLOAD_FOLDER'])
     ensure_directory_exists(app.config['OUTPUT_FOLDER'])
     ensure_directory_exists(app.config.get('TEMP_FOLDER', 'temp'))
-    ensure_directory_exists(os.path.dirname(app.config.get('LOG_FILE', 'logs/app.log')))
+    ensure_directory_exists(app.config.get('LOG_DIR', 'logs'))
+
+    # Log application startup
+    logger = logging.getLogger(__name__)
+    logger.info("MinuteMate application initialized successfully")
 
     return app
 
@@ -84,7 +98,9 @@ def index():
             'jobs': '/api/jobs',
             'file_info': '/api/files/info/<job_id>',
             'cleanup': '/api/files/cleanup',
-            'health': '/'
+            'health': '/',
+            'detailed_health': '/api/health/detailed',
+            'monitoring_dashboard': '/api/monitoring/dashboard'
         },
         'supported_formats': {
             'audio': list(app.config['ALLOWED_AUDIO_EXTENSIONS']),
@@ -139,46 +155,88 @@ def cleanup_files():
 @app.route('/api/files/info/<job_id>', methods=['GET'])
 def get_file_info(job_id):
     """Get information about a file associated with a job"""
+    logger = logging.getLogger(__name__)
+
     try:
         job_info = job_tracker.get_job(job_id)
         if not job_info:
-            response = create_response(False, 'Job not found')
-            return jsonify(response), 404
+            raise ValidationError('Job not found', field='job_id', value=job_id)
 
-        # This would need to be enhanced to track file paths in job_tracker
-        # For now, return basic job info
         response = create_response(True, 'File info retrieved', job_info)
         return jsonify(response), 200
 
+    except ValidationError:
+        raise
     except Exception as e:
-        app.logger.error(f"File info error: {str(e)}")
-        response = create_response(False, 'Failed to get file info')
-        return jsonify(response), 500
+        logger.error(f"File info error: {str(e)}", exc_info=True)
+        raise
+
+@app.route('/api/monitoring/dashboard', methods=['GET'])
+def monitoring_dashboard():
+    """Get comprehensive monitoring dashboard data"""
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get health metrics
+        health_status = health_monitor.get_health_status()
+
+        # Get job statistics
+        all_jobs = job_tracker.get_all_jobs()
+        job_stats = {
+            'total_jobs': len(all_jobs),
+            'completed_jobs': len([j for j in all_jobs.values() if j['status'] == 'completed']),
+            'failed_jobs': len([j for j in all_jobs.values() if j['status'] == 'failed']),
+            'in_progress_jobs': len([j for j in all_jobs.values() if j['status'] in ['uploaded', 'transcribing', 'parsing', 'formatting', 'exporting']])
+        }
+
+        # System information
+        import psutil
+        system_info = {
+            'cpu_percent': psutil.cpu_percent(),
+            'memory_percent': psutil.virtual_memory().percent,
+            'disk_usage': psutil.disk_usage('/').percent
+        }
+
+        dashboard_data = {
+            'health': health_status,
+            'jobs': job_stats,
+            'system': system_info,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        response = create_response(True, 'Dashboard data retrieved', dashboard_data)
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Dashboard error: {str(e)}", exc_info=True)
+        # Return basic health info even if detailed monitoring fails
+        basic_health = health_monitor.get_health_status()
+        response = create_response(True, 'Basic dashboard data retrieved', {'health': basic_health})
+        return jsonify(response), 200
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
     """Handle file upload for audio/video processing with enhanced validation"""
+    logger = logging.getLogger(__name__)
+
     try:
         # Check if file is present in request
         if 'file' not in request.files:
-            response = create_response(False, 'No file provided')
-            return jsonify(response), 400
+            raise ValidationError('No file provided', field='file')
 
         file = request.files['file']
 
         # Check if file was selected
         if file.filename == '':
-            response = create_response(False, 'No file selected')
-            return jsonify(response), 400
+            raise ValidationError('No file selected', field='file')
 
         # Basic extension check (quick validation)
         if not allowed_file(file.filename):
-            response = create_response(
-                False,
+            raise ValidationError(
                 'Invalid file type',
-                {'allowed_types': list(app.config['ALLOWED_EXTENSIONS'])}
+                field='file',
+                value=file.filename
             )
-            return jsonify(response), 400
 
         # Generate job ID for tracking
         job_id = generate_job_id(file.filename)
@@ -192,8 +250,10 @@ def upload_file():
         )
 
         if not storage_result['success']:
-            response = create_response(False, storage_result['error'])
-            return jsonify(response), 400
+            raise FileProcessingError(
+                storage_result['error'],
+                operation='file_storage'
+            )
 
         # Get file information
         file_info = storage_result['file_info']
@@ -235,28 +295,24 @@ def upload_file():
         if storage_result.get('warnings'):
             response_data['warnings'] = storage_result['warnings']
 
+        # Record successful request
+        health_monitor.record_request(True, time.time() - g.start_time)
+
         response = create_response(True, 'File uploaded successfully', response_data)
         return jsonify(response), 200
 
+    except (ValidationError, FileProcessingError, SecurityError):
+        # These are handled by the error handler
+        health_monitor.record_request(False, time.time() - g.start_time)
+        raise
     except RequestEntityTooLarge:
-        max_size_mb = app.config['MAX_CONTENT_LENGTH'] // (1024*1024)
-        response = create_response(
-            False,
-            f'File too large. Maximum size allowed: {max_size_mb}MB'
-        )
-        return jsonify(response), 413
-    except FileValidationError as e:
-        app.logger.warning(f"File validation error: {str(e)}")
-        response = create_response(False, f'File validation failed: {str(e)}')
-        return jsonify(response), 400
-    except FileStorageError as e:
-        app.logger.error(f"File storage error: {str(e)}")
-        response = create_response(False, f'File storage failed: {str(e)}')
-        return jsonify(response), 500
+        health_monitor.record_request(False, time.time() - g.start_time, 'File too large')
+        # This will be handled by the error handler
+        raise
     except Exception as e:
-        app.logger.error(f"Upload error: {str(e)}")
-        response = create_response(False, 'Internal server error')
-        return jsonify(response), 500
+        health_monitor.record_request(False, time.time() - g.start_time, str(e))
+        logger.error(f"Unexpected upload error: {str(e)}", exc_info=True)
+        raise
 
 @app.route('/api/status/<job_id>', methods=['GET'])
 def get_job_status(job_id):
@@ -301,16 +357,7 @@ def download_result(job_id):
         response = create_response(False, 'Error downloading file')
         return jsonify(response), 500
 
-@app.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors"""
-    return jsonify({'error': 'Endpoint not found'}), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    """Handle 500 errors"""
-    app.logger.error(f"Internal error: {str(error)}")
-    return jsonify({'error': 'Internal server error'}), 500
+# Error handlers are now managed by the ErrorHandler class
 
 if __name__ == '__main__':
     # Development server

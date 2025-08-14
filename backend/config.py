@@ -52,14 +52,33 @@ class BaseConfig:
     MAX_PROCESSING_TIME = 3600  # 1 hour max processing time
     CLEANUP_TEMP_FILES = True
     
-    # Logging
+    # Logging configuration
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
-    LOG_FILE = os.path.join(os.path.dirname(__file__), '..', 'logs', 'minutemate.log')
+    LOG_DIR = os.path.join(os.path.dirname(__file__), '..', 'logs')
+    LOG_FILE = os.path.join(LOG_DIR, 'minutemate.log')
+    LOG_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    LOG_BACKUP_COUNT = 5
+    LOG_ENABLE_CONSOLE = True
+    LOG_ENABLE_FILE = True
+
+    # Error handling settings
+    ERROR_INCLUDE_TRACEBACK = False  # Set to True in development
+    ERROR_SEND_EMAIL = False  # Email notifications for critical errors
+    ERROR_EMAIL_RECIPIENTS = []
+
+    # Security settings
+    SECURITY_RATE_LIMIT_ENABLED = True
+    SECURITY_RATE_LIMIT_REQUESTS = 100  # requests per hour
+    SECURITY_RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
+    SECURITY_MONITOR_ENABLED = True
+    SECURITY_BLOCK_THRESHOLD = 10  # failed attempts before blocking
 
 class DevelopmentConfig(BaseConfig):
     """Development configuration"""
     DEBUG = True
     TESTING = False
+    ERROR_INCLUDE_TRACEBACK = True
+    LOG_LEVEL = 'DEBUG'
 
 class ProductionConfig(BaseConfig):
     """Production configuration"""

@@ -21,3 +21,4 @@ spacy==3.7.2
 # Utilities
 python-dotenv==1.0.0
 requests==2.31.0
+psutil==5.9.6
