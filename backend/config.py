@@ -16,14 +16,29 @@ class BaseConfig:
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'uploads')
     OUTPUT_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'output')
     TEMP_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'temp')
-    
+
+    # File validation settings
+    ENABLE_MIME_VALIDATION = True
+    ENABLE_MALICIOUS_SCAN = True
+    MAX_FILENAME_LENGTH = 255
+
+    # File cleanup settings
+    AUTO_CLEANUP_ENABLED = True
+    CLEANUP_INTERVAL_HOURS = 6
+    MAX_FILE_AGE_HOURS = 24
+    TEMP_FILE_AGE_HOURS = 2
+
     # Allowed file extensions
     ALLOWED_AUDIO_EXTENSIONS = {
         'mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'wma'
     }
     ALLOWED_VIDEO_EXTENSIONS = {
-        'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'
+        'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', '3gp'
     }
+
+    # Storage organization
+    ORGANIZE_BY_TYPE = True  # Separate audio and video files
+    ORGANIZE_BY_DATE = False  # Create date-based subdirectories
     
     @property
     def ALLOWED_EXTENSIONS(self):

@@ -14,10 +14,11 @@ from werkzeug.exceptions import RequestEntityTooLarge
 # Import our custom modules
 from config import get_config
 from utils import (
-    generate_job_id, validate_file_type, get_audio_video_mimes,
-    ensure_directory_exists, create_response, format_file_size, get_file_size
+    generate_job_id, ensure_directory_exists, create_response, format_file_size
 )
 from job_tracker import job_tracker, JobStatus
+from file_manager import FileStorageManager, FileValidationError, FileStorageError
+from scheduler import create_cleanup_scheduler
 
 # Import processing modules (will be created next)
 # from modules.transcriber import AudioTranscriber
@@ -53,6 +54,17 @@ def create_app():
 
 app = create_app()
 
+# Initialize file storage manager
+file_storage = FileStorageManager(
+    base_upload_dir=app.config['UPLOAD_FOLDER'],
+    base_output_dir=app.config['OUTPUT_FOLDER'],
+    temp_dir=app.config['TEMP_FOLDER']
+)
+
+# Initialize cleanup scheduler
+cleanup_scheduler = create_cleanup_scheduler(file_storage, job_tracker, app.config)
+cleanup_scheduler.start()
+
 def allowed_file(filename):
     """Check if uploaded file has an allowed extension"""
     return '.' in filename and \
@@ -70,6 +82,8 @@ def index():
             'status': '/api/status/<job_id>',
             'download': '/api/download/<job_id>',
             'jobs': '/api/jobs',
+            'file_info': '/api/files/info/<job_id>',
+            'cleanup': '/api/files/cleanup',
             'health': '/'
         },
         'supported_formats': {
@@ -77,7 +91,18 @@ def index():
             'video': list(app.config['ALLOWED_VIDEO_EXTENSIONS'])
         },
         'limits': {
-            'max_file_size': f"{app.config['MAX_CONTENT_LENGTH'] // (1024*1024)}MB"
+            'max_file_size': f"{app.config['MAX_CONTENT_LENGTH'] // (1024*1024)}MB",
+            'max_filename_length': app.config.get('MAX_FILENAME_LENGTH', 255)
+        },
+        'security_features': {
+            'mime_validation': app.config.get('ENABLE_MIME_VALIDATION', True),
+            'malicious_scan': app.config.get('ENABLE_MALICIOUS_SCAN', True),
+            'file_organization': app.config.get('ORGANIZE_BY_TYPE', True)
+        },
+        'storage_info': {
+            'upload_folder': app.config['UPLOAD_FOLDER'],
+            'auto_cleanup': app.config.get('AUTO_CLEANUP_ENABLED', True),
+            'max_file_age_hours': app.config.get('MAX_FILE_AGE_HOURS', 24)
         }
     })
 
@@ -88,9 +113,51 @@ def list_jobs():
     response = create_response(True, f'Retrieved {len(jobs)} jobs', {'jobs': jobs})
     return jsonify(response), 200
 
+@app.route('/api/files/cleanup', methods=['POST'])
+def cleanup_files():
+    """Clean up old files (admin endpoint)"""
+    try:
+        # Get max age from request or use default
+        data = request.get_json() or {}
+        max_age_hours = data.get('max_age_hours', app.config.get('MAX_FILE_AGE_HOURS', 24))
+
+        # Run manual cleanup using scheduler
+        cleanup_stats = cleanup_scheduler.run_manual_cleanup(max_age_hours)
+
+        response = create_response(
+            True,
+            'Cleanup completed successfully',
+            cleanup_stats
+        )
+        return jsonify(response), 200
+
+    except Exception as e:
+        app.logger.error(f"Cleanup error: {str(e)}")
+        response = create_response(False, 'Cleanup failed')
+        return jsonify(response), 500
+
+@app.route('/api/files/info/<job_id>', methods=['GET'])
+def get_file_info(job_id):
+    """Get information about a file associated with a job"""
+    try:
+        job_info = job_tracker.get_job(job_id)
+        if not job_info:
+            response = create_response(False, 'Job not found')
+            return jsonify(response), 404
+
+        # This would need to be enhanced to track file paths in job_tracker
+        # For now, return basic job info
+        response = create_response(True, 'File info retrieved', job_info)
+        return jsonify(response), 200
+
+    except Exception as e:
+        app.logger.error(f"File info error: {str(e)}")
+        response = create_response(False, 'Failed to get file info')
+        return jsonify(response), 500
+
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
-    """Handle file upload for audio/video processing"""
+    """Handle file upload for audio/video processing with enhanced validation"""
     try:
         # Check if file is present in request
         if 'file' not in request.files:
@@ -104,7 +171,7 @@ def upload_file():
             response = create_response(False, 'No file selected')
             return jsonify(response), 400
 
-        # Validate file extension
+        # Basic extension check (quick validation)
         if not allowed_file(file.filename):
             response = create_response(
                 False,
@@ -113,50 +180,62 @@ def upload_file():
             )
             return jsonify(response), 400
 
-        # Generate secure filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        original_filename = secure_filename(file.filename)
-        filename = f"{timestamp}_{original_filename}"
+        # Generate job ID for tracking
+        job_id = generate_job_id(file.filename)
 
-        # Save file
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
+        # Use enhanced file storage manager
+        storage_result = file_storage.store_uploaded_file(
+            uploaded_file=file,
+            original_filename=file.filename,
+            job_id=job_id,
+            max_size_bytes=app.config['MAX_CONTENT_LENGTH']
+        )
 
-        # Get file info
-        file_size = get_file_size(file_path)
-        formatted_size = format_file_size(file_size)
-
-        # Validate file type using magic
-        mimes = get_audio_video_mimes()
-        all_allowed_mimes = mimes['audio'] | mimes['video']
-
-        if not validate_file_type(file_path, all_allowed_mimes):
-            os.remove(file_path)  # Clean up invalid file
-            response = create_response(False, 'Invalid file format detected')
+        if not storage_result['success']:
+            response = create_response(False, storage_result['error'])
             return jsonify(response), 400
 
-        # Generate job ID for tracking
-        job_id = generate_job_id(original_filename)
+        # Get file information
+        file_info = storage_result['file_info']
+        formatted_size = format_file_size(file_info['size_bytes'])
 
-        # Create job entry in tracker
-        job_info = job_tracker.create_job(job_id, original_filename, formatted_size)
-
-        app.logger.info(f"File uploaded successfully: {filename}, Job ID: {job_id}, Size: {formatted_size}")
-
-        # TODO: Start background processing task
-        # This is where we'll integrate the transcription pipeline
-
-        response = create_response(
-            True,
-            'File uploaded successfully',
-            {
-                'job_id': job_id,
-                'filename': original_filename,
-                'file_size': formatted_size,
-                'status': job_info['status'],
-                'next_step': 'transcription'
-            }
+        # Create job entry in tracker with enhanced info
+        job_info = job_tracker.create_job(
+            job_id=job_id,
+            filename=file.filename,
+            file_size=formatted_size,
+            file_path=storage_result['file_path'],
+            file_type=file_info['file_type']
         )
+
+        # Add file storage info to job
+        job_tracker.update_job(
+            job_id,
+            message=f"File uploaded and validated successfully. Type: {file_info['file_type']}"
+        )
+
+        app.logger.info(
+            f"File uploaded successfully: {storage_result['secure_filename']}, "
+            f"Job ID: {job_id}, Size: {formatted_size}, Type: {file_info['file_type']}"
+        )
+
+        # Prepare response data
+        response_data = {
+            'job_id': job_id,
+            'filename': file.filename,
+            'secure_filename': storage_result['secure_filename'],
+            'file_size': formatted_size,
+            'file_type': file_info['file_type'],
+            'mime_type': file_info['mime_type'],
+            'status': job_info['status'],
+            'next_step': 'transcription'
+        }
+
+        # Include warnings if any
+        if storage_result.get('warnings'):
+            response_data['warnings'] = storage_result['warnings']
+
+        response = create_response(True, 'File uploaded successfully', response_data)
         return jsonify(response), 200
 
     except RequestEntityTooLarge:
@@ -166,6 +245,14 @@ def upload_file():
             f'File too large. Maximum size allowed: {max_size_mb}MB'
         )
         return jsonify(response), 413
+    except FileValidationError as e:
+        app.logger.warning(f"File validation error: {str(e)}")
+        response = create_response(False, f'File validation failed: {str(e)}')
+        return jsonify(response), 400
+    except FileStorageError as e:
+        app.logger.error(f"File storage error: {str(e)}")
+        response = create_response(False, f'File storage failed: {str(e)}')
+        return jsonify(response), 500
     except Exception as e:
         app.logger.error(f"Upload error: {str(e)}")
         response = create_response(False, 'Internal server error')

@@ -26,15 +26,18 @@ class JobTracker:
         self._jobs: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.Lock()
     
-    def create_job(self, job_id: str, filename: str, file_size: str) -> Dict[str, Any]:
+    def create_job(self, job_id: str, filename: str, file_size: str,
+                  file_path: Optional[str] = None, file_type: Optional[str] = None) -> Dict[str, Any]:
         """
         Create a new job entry
-        
+
         Args:
             job_id: Unique job identifier
             filename: Original filename
             file_size: Formatted file size string
-            
+            file_path: Path to uploaded file
+            file_type: Type of file (audio/video)
+
         Returns:
             dict: Job information
         """
@@ -43,6 +46,8 @@ class JobTracker:
                 'job_id': job_id,
                 'filename': filename,
                 'file_size': file_size,
+                'file_path': file_path,
+                'file_type': file_type,
                 'status': JobStatus.UPLOADED.value,
                 'stage': 'uploaded',
                 'progress': 0,
