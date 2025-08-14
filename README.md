@@ -1,16 +1,19 @@
-# 🧠 MinuteMate - Smart Meeting Minutes from Audio/Video
+# 🧠 MinuteMate
 
-**MinuteMate** uses AI to convert recorded meetings into structured, editable minutes based on Robert’s Rules of Order — and learns your preferences over time.
+**MinuteMate** is an AI-powered tool that converts audio/video recordings of meetings into structured, Robert’s Rules-style minutes. It learns from your edits to personalize future output.
 
-### 🔧 Features
-- 🎙 Upload audio/video recordings
-- ✍️ Get structured minutes in Word format
-- 🔁 Re-upload your edits to train the tool to match your style
-- 📄 Exports in DOCX (Word)
+## 🚀 Features
+- Upload meeting audio/video
+- Auto-transcription using Whisper
+- NLP parsing into structured minutes
+- DOCX export for editing
+- Learns from your edits over time
 
-### 🚀 Getting Started
-```bash
-git clone https://github.com/your-username/minute-mate.git
-cd minute-mate
-pip install -r requirements.txt
-python backend/app.py
+## 🛠 Tech Stack
+- Python (Flask backend)
+- Whisper / OpenAI for transcription
+- NLP (spaCy, regex, GPT)
+- Frontend: HTML/JS (or React)
+- Export: python-docx
+
+## 📦 Project Structure
