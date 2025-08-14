@@ -294,12 +294,14 @@
                 <h3><i class="fas fa-list-ol"></i> Quick Start Guide</h3>
                 <ol style="color: var(--gray-700); line-height: 1.8; margin-left: 20px;">
                     <li>Click "Try Live Demo" to access the main interface</li>
-                    <li>Drag and drop or select an audio/video file of your meeting</li>
+                    <li>Choose upload method: "Upload File" or "From URL"</li>
+                    <li>For files: Drag and drop or select an audio/video file</li>
+                    <li>For URLs: Paste a direct download link and validate</li>
                     <li>Choose your preferred language and output format</li>
                     <li>Click "Start Processing" and monitor real-time progress</li>
                     <li>Download your professionally formatted meeting minutes</li>
                 </ol>
-                
+
                 <div class="demo-buttons">
                     <a href="index.html" class="demo-btn primary">
                         <i class="fas fa-play"></i>
@@ -309,6 +311,60 @@
                         <i class="fas fa-code"></i>
                         View API Docs
                     </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- URL Upload Guide -->
+        <section class="demo-section">
+            <h2><i class="fas fa-link"></i> URL Upload Guide</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><i class="fas fa-video"></i> Zoom Recordings</h3>
+                    <p><strong>How to get the download link:</strong></p>
+                    <ol style="margin-left: 20px; color: var(--gray-600);">
+                        <li>Go to Zoom web portal → Recordings</li>
+                        <li>Find your recording and click "Share"</li>
+                        <li>Copy the "Download" link (not the viewing link)</li>
+                        <li>Paste the download URL into MinuteMate</li>
+                    </ol>
+                </div>
+
+                <div class="feature-card">
+                    <h3><i class="fas fa-cloud"></i> Google Drive</h3>
+                    <p><strong>How to get the download link:</strong></p>
+                    <ol style="margin-left: 20px; color: var(--gray-600);">
+                        <li>Right-click your file in Google Drive</li>
+                        <li>Select "Get link" and set to "Anyone with the link"</li>
+                        <li>Copy the sharing link</li>
+                        <li>Convert to download format: Replace "view" with "download" in the URL</li>
+                    </ol>
+                </div>
+
+                <div class="feature-card">
+                    <h3><i class="fas fa-dropbox"></i> Dropbox</h3>
+                    <p><strong>How to get the download link:</strong></p>
+                    <ol style="margin-left: 20px; color: var(--gray-600);">
+                        <li>Right-click your file in Dropbox</li>
+                        <li>Select "Copy link"</li>
+                        <li>Change "?dl=0" to "?dl=1" at the end of the URL</li>
+                        <li>Paste the modified URL into MinuteMate</li>
+                    </ol>
+                </div>
+
+                <div class="feature-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Not Supported</h3>
+                    <p><strong>These platforms require downloading first:</strong></p>
+                    <ul style="margin-left: 20px; color: var(--gray-600);">
+                        <li>YouTube videos</li>
+                        <li>Vimeo videos</li>
+                        <li>Facebook videos</li>
+                        <li>Instagram videos</li>
+                        <li>TikTok videos</li>
+                    </ul>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--warning-color);">
+                        <strong>Tip:</strong> Download these files first, then use the "Upload File" option.
+                    </p>
                 </div>
             </div>
         </section>
@@ -334,7 +390,7 @@
             statusIcon.className = 'fas fa-spinner fa-spin';
             
             try {
-                const response = await fetch('http://localhost:5000/');
+                const response = await fetch('http://localhost:8080/');
                 if (response.ok) {
                     statusEl.className = 'status-indicator online';
                     statusIcon.className = 'fas fa-circle';
@@ -350,7 +406,7 @@
         }
         
         function showApiDocs() {
-            alert('API Documentation:\n\nMain endpoints:\n• POST /api/upload - Upload files\n• GET /api/status/{job_id} - Check status\n• GET /api/download/{job_id} - Download results\n• GET /api/health/detailed - System health\n\nFor full documentation, visit the API at http://localhost:5000/');
+            alert('API Documentation:\n\nMain endpoints:\n• POST /api/upload - Upload files\n• GET /api/status/{job_id} - Check status\n• GET /api/download/{job_id} - Download results\n• GET /api/health/detailed - System health\n\nFor full documentation, visit the API at http://localhost:8080/');
         }
         
         // Check system status on page load

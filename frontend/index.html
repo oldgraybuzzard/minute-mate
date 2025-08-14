@@ -24,13 +24,114 @@
             <section id="upload-section" class="section active">
                 <div class="upload-container">
                     <h2><i class="fas fa-cloud-upload-alt"></i> Upload Meeting Recording</h2>
+
+                    <!-- Upload Method Selector -->
+                    <div class="upload-method-selector">
+                        <button class="method-btn active" id="file-method-btn" data-method="file">
+                            <i class="fas fa-file-upload"></i>
+                            Upload File
+                        </button>
+                        <button class="method-btn" id="url-method-btn" data-method="url">
+                            <i class="fas fa-link"></i>
+                            From URL
+                        </button>
+                        <button class="method-btn" id="transcript-method-btn" data-method="transcript">
+                            <i class="fas fa-file-alt"></i>
+                            Text Transcript
+                        </button>
+                    </div>
                     
+                    <!-- File Upload Area -->
                     <div class="upload-area" id="upload-area">
                         <div class="upload-content">
                             <i class="fas fa-file-audio upload-icon"></i>
                             <h3>Drop your audio or video file here</h3>
                             <p>or <span class="browse-link">browse to select a file</span></p>
                             <input type="file" id="file-input" accept="audio/*,video/*" hidden>
+                        </div>
+                    </div>
+
+                    <!-- URL Upload Area -->
+                    <div class="url-upload-area" id="url-upload-area" style="display: none;">
+                        <div class="url-input-container">
+                            <i class="fas fa-link url-icon"></i>
+                            <h3>Enter Meeting Recording URL</h3>
+                            <p>Paste the URL of your meeting recording (Zoom, Google Meet, etc.)</p>
+
+                            <div class="url-input-group">
+                                <input type="url" id="url-input" placeholder="https://example.com/recording.mp4" />
+                                <button type="button" id="url-validate-btn">
+                                    <i class="fas fa-check"></i>
+                                    Validate
+                                </button>
+                            </div>
+
+                            <div class="url-filename-group" style="display: none;">
+                                <label for="url-filename">Custom filename (optional):</label>
+                                <input type="text" id="url-filename" placeholder="my-meeting-recording.mp4" />
+                            </div>
+                        </div>
+
+                        <div class="url-examples">
+                            <p><strong>Supported URL types:</strong></p>
+                            <div class="platform-tags">
+                                <span class="platform-tag">Zoom Cloud</span>
+                                <span class="platform-tag">Google Drive</span>
+                                <span class="platform-tag">Dropbox</span>
+                                <span class="platform-tag">OneDrive</span>
+                                <span class="platform-tag">Direct Links</span>
+                            </div>
+
+                            <div class="url-help">
+                                <p><strong>Examples of supported URLs:</strong></p>
+                                <ul>
+                                    <li>Zoom cloud recording download links</li>
+                                    <li>Google Drive direct download links</li>
+                                    <li>Dropbox shared file links</li>
+                                    <li>Direct HTTP/HTTPS links to .mp3, .mp4, .wav files</li>
+                                </ul>
+
+                                <p><strong>Note:</strong> YouTube, Vimeo, and other streaming platforms are not supported. Please download the file first and upload it directly.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transcript Upload Area -->
+                    <div class="transcript-upload-area" id="transcript-upload-area" style="display: none;">
+                        <div class="transcript-input-container">
+                            <i class="fas fa-file-alt transcript-icon"></i>
+                            <h3>Upload or Paste Meeting Transcript</h3>
+                            <p>Upload a text file or paste your meeting transcript directly</p>
+
+                            <!-- File Upload Option -->
+                            <div class="transcript-file-upload">
+                                <div class="upload-area small">
+                                    <div class="upload-content">
+                                        <i class="fas fa-file-text upload-icon"></i>
+                                        <p class="upload-text">Drop transcript file here</p>
+                                        <p class="upload-subtext">or click to browse</p>
+                                        <p class="file-types">Supports: TXT, DOCX, PDF</p>
+                                    </div>
+                                    <input type="file" id="transcript-file-input" accept=".txt,.doc,.docx,.pdf" hidden>
+                                </div>
+                            </div>
+
+                            <!-- Text Input Option -->
+                            <div class="transcript-text-section">
+                                <h4>Or paste your transcript text:</h4>
+                                <textarea id="transcript-text" placeholder="Paste your meeting transcript here...
+
+Example:
+John Smith: Good morning everyone, let's start today's meeting.
+Jane Doe: Thank you John. First item on the agenda is the budget review.
+Bob Johnson: I'd like to make a motion to approve the quarterly budget.
+Alice Williams: I second that motion.
+John Smith: All in favor? [Multiple voices: Aye] Motion carries."></textarea>
+                                <div class="transcript-actions">
+                                    <button class="btn secondary" id="clear-transcript-btn">Clear Text</button>
+                                    <button class="btn primary" id="process-transcript-btn">Process Transcript</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -217,12 +318,12 @@
                         <h3>Download Your Meeting Minutes</h3>
                         <div class="download-options">
                             <button class="download-btn primary" id="download-docx">
-                                <i class="fas fa-file-word"></i>
-                                Download DOCX
+                                <i class="fas fa-file-alt"></i>
+                                Download Meeting Minutes
                             </button>
                             <button class="download-btn secondary" id="download-pdf">
-                                <i class="fas fa-file-pdf"></i>
-                                Download PDF
+                                <i class="fas fa-file-alt"></i>
+                                Download (JSON Format)
                             </button>
                             <button class="download-btn secondary" id="view-preview">
                                 <i class="fas fa-eye"></i>

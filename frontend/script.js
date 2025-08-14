@@ -5,7 +5,7 @@
 
 class MinuteMateApp {
     constructor() {
-        this.apiBaseUrl = 'http://localhost:5000';
+        this.apiBaseUrl = 'http://localhost:8080';
         this.currentJobId = null;
         this.selectedFile = null;
         this.pollInterval = null;
@@ -26,6 +26,30 @@ class MinuteMateApp {
         this.uploadBtn = document.getElementById('upload-btn');
         this.languageSelect = document.getElementById('language-select');
         this.formatSelect = document.getElementById('format-select');
+
+        // Upload method elements
+        this.fileMethodBtn = document.getElementById('file-method-btn');
+        this.urlMethodBtn = document.getElementById('url-method-btn');
+        this.transcriptMethodBtn = document.getElementById('transcript-method-btn');
+        this.urlUploadArea = document.getElementById('url-upload-area');
+        this.transcriptUploadArea = document.getElementById('transcript-upload-area');
+        this.urlInput = document.getElementById('url-input');
+        this.urlValidateBtn = document.getElementById('url-validate-btn');
+        this.urlFilenameInput = document.getElementById('url-filename');
+        this.urlFilenameGroup = document.querySelector('.url-filename-group');
+
+        // Transcript elements
+        this.transcriptUploadArea = document.getElementById('transcript-upload-area');
+        this.transcriptFileUploadArea = document.querySelector('.transcript-file-upload .upload-area');
+        this.transcriptFileInput = document.getElementById('transcript-file-input');
+        this.transcriptText = document.getElementById('transcript-text');
+        this.clearTranscriptBtn = document.getElementById('clear-transcript-btn');
+        this.processTranscriptBtn = document.getElementById('process-transcript-btn');
+
+        // Current upload method and data
+        this.uploadMethod = 'file'; // 'file', 'url', or 'transcript'
+        this.validatedUrl = null;
+        this.transcriptContent = null;
 
         // Processing elements
         this.jobId = document.getElementById('job-id');
@@ -75,6 +99,11 @@ class MinuteMateApp {
     }
 
     bindEvents() {
+        // Upload method selection events
+        this.fileMethodBtn.addEventListener('click', () => this.switchUploadMethod('file'));
+        this.urlMethodBtn.addEventListener('click', () => this.switchUploadMethod('url'));
+        this.transcriptMethodBtn.addEventListener('click', () => this.switchUploadMethod('transcript'));
+
         // File upload events
         this.uploadArea.addEventListener('click', () => this.fileInput.click());
         this.uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
@@ -82,14 +111,35 @@ class MinuteMateApp {
         this.uploadArea.addEventListener('drop', this.handleDrop.bind(this));
         this.fileInput.addEventListener('change', this.handleFileSelect.bind(this));
         this.removeFileBtn.addEventListener('click', this.removeFile.bind(this));
+
+        // URL upload events
+        this.urlInput.addEventListener('input', this.handleUrlInput.bind(this));
+        this.urlValidateBtn.addEventListener('click', this.validateUrl.bind(this));
+        this.urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.validateUrl();
+            }
+        });
+
+        // Transcript upload events
+        this.transcriptFileUploadArea.addEventListener('click', () => this.transcriptFileInput.click());
+        this.transcriptFileUploadArea.addEventListener('dragover', this.handleTranscriptDragOver.bind(this));
+        this.transcriptFileUploadArea.addEventListener('dragleave', this.handleTranscriptDragLeave.bind(this));
+        this.transcriptFileUploadArea.addEventListener('drop', this.handleTranscriptDrop.bind(this));
+        this.transcriptFileInput.addEventListener('change', this.handleTranscriptFileSelect.bind(this));
+        this.transcriptText.addEventListener('input', this.handleTranscriptTextInput.bind(this));
+        this.clearTranscriptBtn.addEventListener('click', this.clearTranscript.bind(this));
+        this.processTranscriptBtn.addEventListener('click', this.processTranscript.bind(this));
+
+        // Upload button event (handles both file and URL)
         this.uploadBtn.addEventListener('click', this.startUpload.bind(this));
 
         // Processing events
         this.cancelBtn.addEventListener('click', this.cancelProcessing.bind(this));
 
         // Results events
-        this.downloadDocxBtn.addEventListener('click', () => this.downloadFile('docx'));
-        this.downloadPdfBtn.addEventListener('click', () => this.downloadFile('pdf'));
+        this.downloadDocxBtn.addEventListener('click', () => this.downloadFile());
+        this.downloadPdfBtn.addEventListener('click', () => this.downloadFile());
         this.viewPreviewBtn.addEventListener('click', this.viewPreview.bind(this));
 
         // Error events
@@ -187,16 +237,300 @@ class MinuteMateApp {
 
     formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
-        
+
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
+
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Upload method switching
+    switchUploadMethod(method) {
+        this.uploadMethod = method;
+
+        // Update button states
+        this.fileMethodBtn.classList.toggle('active', method === 'file');
+        this.urlMethodBtn.classList.toggle('active', method === 'url');
+        this.transcriptMethodBtn.classList.toggle('active', method === 'transcript');
+
+        // Show/hide appropriate upload areas
+        this.uploadArea.style.display = method === 'file' ? 'block' : 'none';
+        this.urlUploadArea.style.display = method === 'url' ? 'block' : 'none';
+        this.transcriptUploadArea.style.display = method === 'transcript' ? 'block' : 'none';
+
+        // Reset states
+        this.removeFile();
+        this.resetUrlForm();
+        this.resetTranscriptForm();
+        this.uploadBtn.disabled = true;
+    }
+
+    // URL upload methods
+    handleUrlInput() {
+        const url = this.urlInput.value.trim();
+
+        // Reset validation state
+        this.urlInput.classList.remove('valid', 'error');
+        this.validatedUrl = null;
+        this.urlFilenameGroup.style.display = 'none';
+        this.uploadBtn.disabled = true;
+
+        // Enable validate button if URL looks valid
+        this.urlValidateBtn.disabled = !url || !this.isValidUrlFormat(url);
+    }
+
+    isValidUrlFormat(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+        } catch {
+            return false;
+        }
+    }
+
+    async validateUrl() {
+        const url = this.urlInput.value.trim();
+
+        if (!url || !this.isValidUrlFormat(url)) {
+            this.showToast('Please enter a valid URL', 'error');
+            return;
+        }
+
+        // Check for streaming platforms
+        if (this.isStreamingPlatform(url)) {
+            this.urlInput.classList.add('error');
+            this.urlInput.classList.remove('valid');
+            this.showToast('Streaming platforms (YouTube, Vimeo, etc.) are not supported. Please use a direct download link.', 'error');
+            return;
+        }
+
+        this.urlValidateBtn.disabled = true;
+        this.urlValidateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validating...';
+
+        try {
+            // Simple validation - try to fetch headers
+            const response = await fetch(url, {
+                method: 'HEAD',
+                mode: 'no-cors' // This will limit what we can check, but avoids CORS issues
+            });
+
+            // Since we're using no-cors, we can't check the actual response
+            // But if we get here without an error, the URL is at least reachable
+            this.urlInput.classList.add('valid');
+            this.urlInput.classList.remove('error');
+            this.validatedUrl = url;
+            this.urlFilenameGroup.style.display = 'block';
+            this.uploadBtn.disabled = false;
+
+            // Try to suggest a filename from the URL
+            const urlPath = new URL(url).pathname;
+            const suggestedFilename = urlPath.split('/').pop();
+            if (suggestedFilename && suggestedFilename.includes('.')) {
+                this.urlFilenameInput.value = suggestedFilename;
+            }
+
+            this.showToast('URL validated successfully!', 'success');
+
+        } catch (error) {
+            // For no-cors requests, we might get here even for valid URLs
+            // So we'll be more lenient and just check the URL format
+            if (this.isValidUrlFormat(url)) {
+                this.urlInput.classList.add('valid');
+                this.urlInput.classList.remove('error');
+                this.validatedUrl = url;
+                this.urlFilenameGroup.style.display = 'block';
+                this.uploadBtn.disabled = false;
+
+                this.showToast('URL format is valid. Proceeding with download...', 'success');
+            } else {
+                this.urlInput.classList.add('error');
+                this.urlInput.classList.remove('valid');
+                this.showToast('Unable to validate URL. Please check the link.', 'error');
+            }
+        } finally {
+            this.urlValidateBtn.disabled = false;
+            this.urlValidateBtn.innerHTML = '<i class="fas fa-check"></i> Validate';
+        }
+    }
+
+    isStreamingPlatform(url) {
+        const streamingDomains = [
+            'youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv',
+            'facebook.com', 'instagram.com', 'tiktok.com', 'dailymotion.com'
+        ];
+
+        try {
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.toLowerCase().replace('www.', '');
+            return streamingDomains.some(streamingDomain =>
+                domain === streamingDomain || domain.endsWith('.' + streamingDomain)
+            );
+        } catch {
+            return false;
+        }
+    }
+
+    resetUrlForm() {
+        this.urlInput.value = '';
+        this.urlFilenameInput.value = '';
+        this.urlInput.classList.remove('valid', 'error');
+        this.validatedUrl = null;
+        this.urlFilenameGroup.style.display = 'none';
+        this.urlValidateBtn.disabled = true;
+    }
+
+    // Transcript upload methods
+    handleTranscriptFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Check file type
+        const allowedTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!allowedTypes.includes(file.type)) {
+            this.showToast('Please select a TXT, PDF, or DOCX file', 'error');
+            return;
+        }
+
+        // Read file content
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if (file.type === 'text/plain') {
+                this.transcriptText.value = e.target.result;
+                this.handleTranscriptTextInput();
+            } else {
+                // For PDF/DOCX, we'll need to send to backend for processing
+                this.transcriptContent = {
+                    type: 'file',
+                    file: file,
+                    name: file.name
+                };
+                this.updateTranscriptUploadState();
+            }
+        };
+
+        if (file.type === 'text/plain') {
+            reader.readAsText(file);
+        } else {
+            reader.readAsArrayBuffer(file);
+        }
+    }
+
+    handleTranscriptTextInput() {
+        const text = this.transcriptText.value.trim();
+        if (text.length > 0) {
+            this.transcriptContent = {
+                type: 'text',
+                content: text
+            };
+            this.updateTranscriptUploadState();
+        } else {
+            this.transcriptContent = null;
+            this.processTranscriptBtn.disabled = true;
+        }
+    }
+
+    updateTranscriptUploadState() {
+        const hasContent = this.transcriptContent !== null;
+        this.processTranscriptBtn.disabled = !hasContent;
+
+        if (hasContent && this.transcriptContent.type === 'file') {
+            this.showToast(`File "${this.transcriptContent.name}" loaded successfully`, 'success');
+        }
+    }
+
+    clearTranscript() {
+        this.transcriptText.value = '';
+        this.transcriptFileInput.value = '';
+        this.transcriptContent = null;
+        this.processTranscriptBtn.disabled = true;
+    }
+
+    resetTranscriptForm() {
+        this.clearTranscript();
+    }
+
+    // Transcript drag and drop handlers
+    handleTranscriptDragOver(event) {
+        event.preventDefault();
+        this.transcriptFileUploadArea.classList.add('dragover');
+    }
+
+    handleTranscriptDragLeave(event) {
+        event.preventDefault();
+        this.transcriptFileUploadArea.classList.remove('dragover');
+    }
+
+    handleTranscriptDrop(event) {
+        event.preventDefault();
+        this.transcriptFileUploadArea.classList.remove('dragover');
+
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+            const file = files[0];
+            // Simulate file input change event
+            this.handleTranscriptFileSelect({ target: { files: [file] } });
+        }
+    }
+
+    async processTranscript() {
+        if (!this.transcriptContent) {
+            this.showToast('Please provide a transcript first', 'error');
+            return;
+        }
+
+        try {
+            this.showLoading('Processing transcript...');
+
+            const formData = new FormData();
+
+            if (this.transcriptContent.type === 'text') {
+                // Send text content
+                formData.append('transcript_text', this.transcriptContent.content);
+                formData.append('upload_type', 'transcript_text');
+            } else {
+                // Send file
+                formData.append('transcript_file', this.transcriptContent.file);
+                formData.append('upload_type', 'transcript_file');
+            }
+
+            // Add processing options
+            formData.append('language', this.languageSelect.value);
+            formData.append('format', this.formatSelect.value);
+
+            const response = await fetch(`${this.apiBaseUrl}/api/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.currentJobId = result.job_id;
+                this.showProcessingSection(result);
+                this.startPolling();
+            } else {
+                throw new Error(result.message || 'Upload failed');
+            }
+        } catch (error) {
+            this.showToast('Failed to process transcript: ' + error.message, 'error');
+        } finally {
+            this.hideLoading();
+        }
     }
 
     // Upload and processing methods
     async startUpload() {
+        if (this.uploadMethod === 'file') {
+            return this.startFileUpload();
+        } else if (this.uploadMethod === 'url') {
+            return this.startUrlUpload();
+        } else if (this.uploadMethod === 'transcript') {
+            return this.processTranscript();
+        }
+    }
+
+    async startFileUpload() {
         if (!this.selectedFile) {
             this.showToast('Please select a file first.', 'error');
             return;
@@ -224,6 +558,46 @@ class MinuteMateApp {
             }
         } catch (error) {
             this.showError('Upload failed: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async startUrlUpload() {
+        if (!this.validatedUrl) {
+            this.showToast('Please validate a URL first.', 'error');
+            return;
+        }
+
+        this.showLoading('Downloading from URL...');
+
+        try {
+            const requestData = {
+                url: this.validatedUrl,
+                filename: this.urlFilenameInput.value.trim() || undefined,
+                language: this.languageSelect.value,
+                format: this.formatSelect.value
+            };
+
+            const response = await fetch(`${this.apiBaseUrl}/api/upload-url`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.currentJobId = result.data.job_id;
+                this.showProcessingSection(result.data);
+                this.startPolling();
+            } else {
+                throw new Error(result.message || 'URL upload failed');
+            }
+        } catch (error) {
+            this.showError('URL upload failed: ' + error.message);
         } finally {
             this.hideLoading();
         }
@@ -360,29 +734,40 @@ class MinuteMateApp {
         this.showSection('results');
     }
 
-    async downloadFile(format) {
+    async downloadFile() {
         if (!this.currentJobId) {
             this.showToast('No job ID available for download', 'error');
             return;
         }
 
         try {
-            this.showLoading(`Preparing ${format.toUpperCase()} download...`);
-            
+            this.showLoading(`Preparing download...`);
+
             const response = await fetch(`${this.apiBaseUrl}/api/download/${this.currentJobId}`);
-            
+
             if (response.ok) {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `meeting-minutes-${this.currentJobId}.${format}`;
+
+                // Get filename from Content-Disposition header or use default
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `meeting-minutes-${this.currentJobId}.json`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                
-                this.showToast(`${format.toUpperCase()} downloaded successfully!`, 'success');
+
+                this.showToast(`Meeting minutes downloaded successfully!`, 'success');
             } else {
                 const result = await response.json();
                 throw new Error(result.message || 'Download failed');
@@ -411,15 +796,17 @@ class MinuteMateApp {
         this.stopPolling();
         this.currentJobId = null;
         this.removeFile();
+        this.resetUrlForm();
+        this.resetTranscriptForm();
         this.showSection('upload');
-        
+
         // Reset all steps
         Object.values(this.steps).forEach(step => {
             step.classList.remove('active', 'completed', 'error');
             const statusIcon = step.querySelector('.step-status i');
             statusIcon.className = 'fas fa-clock';
         });
-        
+
         // Reset progress
         this.updateProgress(0, 'Ready to upload');
     }

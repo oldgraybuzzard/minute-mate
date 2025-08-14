@@ -11,7 +11,7 @@ import shutil
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
 from pathlib import Path
-import magic
+import mimetypes
 from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
@@ -32,12 +32,12 @@ class FileValidator:
             'audio': {
                 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac',
                 'audio/mp4', 'audio/aac', 'audio/ogg', 'audio/x-ms-wma',
-                'audio/x-m4a', 'audio/webm'
+                'audio/x-m4a', 'audio/webm', 'audio/mp4a-latm', 'audio/x-aac'
             },
             'video': {
                 'video/mp4', 'video/x-msvideo', 'video/quicktime',
                 'video/x-matroska', 'video/x-ms-wmv', 'video/x-flv',
-                'video/webm', 'video/avi', 'video/3gpp'
+                'video/webm', 'video/avi', 'video/3gpp', 'video/x-ms-asf'
             }
         }
         
@@ -127,8 +127,28 @@ class FileValidator:
             Tuple of (is_valid, error_message, detected_mime)
         """
         try:
-            mime = magic.Magic(mime=True)
-            detected_mime = mime.from_file(file_path)
+            # Use mimetypes library instead of python-magic
+            detected_mime, _ = mimetypes.guess_type(file_path)
+            if detected_mime is None:
+                # Fallback based on file extension
+                ext = Path(file_path).suffix.lower()
+                mime_map = {
+                    '.mp3': 'audio/mpeg',
+                    '.wav': 'audio/wav',
+                    '.flac': 'audio/flac',
+                    '.m4a': 'audio/mp4a-latm',  # More specific for M4A files
+                    '.aac': 'audio/aac',
+                    '.ogg': 'audio/ogg',
+                    '.wma': 'audio/x-ms-wma',
+                    '.mp4': 'video/mp4',
+                    '.avi': 'video/x-msvideo',
+                    '.mov': 'video/quicktime',
+                    '.mkv': 'video/x-matroska',
+                    '.wmv': 'video/x-ms-wmv',
+                    '.flv': 'video/x-flv',
+                    '.webm': 'video/webm'
+                }
+                detected_mime = mime_map.get(ext, 'application/octet-stream')
             
             all_allowed_mimes = self.allowed_mimes['audio'] | self.allowed_mimes['video']
             

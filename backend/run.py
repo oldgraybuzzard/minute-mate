@@ -22,11 +22,12 @@ if __name__ == "__main__":
     print(f"Upload folder: {app.config.get('UPLOAD_FOLDER')}")
     print(f"Output folder: {app.config.get('OUTPUT_FOLDER')}")
     print("=" * 40)
-    print("Server will be available at: http://localhost:5000")
-    print("Frontend will be available at: http://localhost:5000/frontend/")
+    print("Server will be available at: http://localhost:8080")
+    print("Frontend will be available at: http://localhost:8080/frontend/")
     print("API endpoints:")
     print("  GET  /                    - Health check")
     print("  POST /api/upload          - Upload audio/video file")
+    print("  POST /api/upload-url      - Upload from URL (Zoom, etc.)")
     print("  GET  /api/status/<job_id> - Get job status")
     print("  GET  /api/download/<job_id> - Download result")
     print("  GET  /api/jobs            - List all jobs")
@@ -40,7 +41,7 @@ if __name__ == "__main__":
         app.run(
             debug=True,
             host='0.0.0.0',
-            port=5000,
+            port=8080,
             threaded=True
         )
     except KeyboardInterrupt:

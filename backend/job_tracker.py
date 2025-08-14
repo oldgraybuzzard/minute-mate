@@ -27,7 +27,9 @@ class JobTracker:
         self._lock = threading.Lock()
     
     def create_job(self, job_id: str, filename: str, file_size: str,
-                  file_path: Optional[str] = None, file_type: Optional[str] = None) -> Dict[str, Any]:
+                  file_path: Optional[str] = None, file_type: Optional[str] = None,
+                  language: str = 'auto', output_format: str = 'roberts_rules',
+                  source_type: str = 'file', source_url: Optional[str] = None) -> Dict[str, Any]:
         """
         Create a new job entry
 
@@ -48,10 +50,14 @@ class JobTracker:
                 'file_size': file_size,
                 'file_path': file_path,
                 'file_type': file_type,
+                'language': language,
+                'output_format': output_format,
+                'source_type': source_type,
+                'source_url': source_url,
                 'status': JobStatus.UPLOADED.value,
                 'stage': 'uploaded',
                 'progress': 0,
-                'message': 'File uploaded successfully',
+                'message': 'File uploaded successfully' if source_type == 'file' else 'File downloaded and uploaded successfully',
                 'created_at': datetime.now().isoformat(),
                 'updated_at': datetime.now().isoformat(),
                 'error': None,

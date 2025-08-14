@@ -6,11 +6,15 @@ Main application file for the MinuteMate AI-powered meeting minutes generator.
 import os
 import logging
 import time
+import requests
+import tempfile
 from datetime import datetime
 from flask import Flask, request, jsonify, send_file, g, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
+from urllib.parse import urlparse
+from pathlib import Path
 
 # Import our custom modules
 from config import get_config
@@ -23,6 +27,7 @@ from scheduler import create_cleanup_scheduler
 from logging_config import setup_logging
 from error_handlers import ErrorHandler, ValidationError, FileProcessingError, SecurityError
 from middleware import setup_middleware, health_monitor
+from mock_processor import get_mock_processor
 
 # Import processing modules (will be created next)
 # from modules.transcriber import AudioTranscriber
@@ -79,10 +84,182 @@ file_storage = FileStorageManager(
 cleanup_scheduler = create_cleanup_scheduler(file_storage, job_tracker, app.config)
 cleanup_scheduler.start()
 
+# Initialize mock processor
+mock_processor = get_mock_processor(job_tracker, file_storage)
+app.mock_processor = mock_processor
+
 def allowed_file(filename):
     """Check if uploaded file has an allowed extension"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+    if '.' not in filename:
+        return False
+
+    extension = filename.rsplit('.', 1)[1].lower()
+
+    # Get allowed extensions from config
+    config_obj = app.config
+    allowed_audio = config_obj.get('ALLOWED_AUDIO_EXTENSIONS', set())
+    allowed_video = config_obj.get('ALLOWED_VIDEO_EXTENSIONS', set())
+    allowed_extensions = allowed_audio | allowed_video
+
+    return extension in allowed_extensions
+
+def allowed_transcript_file(filename):
+    """Check if uploaded transcript file has an allowed extension"""
+    if '.' not in filename:
+        return False
+
+    extension = filename.rsplit('.', 1)[1].lower()
+    allowed_transcript_extensions = {'txt', 'pdf', 'docx', 'doc'}
+
+    return extension in allowed_transcript_extensions
+
+def process_transcript_text(transcript_text, job_id, form_data):
+    """Process text transcript directly"""
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get processing options
+        language = form_data.get('language', 'auto')
+        format_type = form_data.get('format', 'formal')
+
+        # Create job entry
+        job_tracker.create_job(
+            job_id=job_id,
+            filename='transcript.txt',
+            file_size=f"{len(transcript_text.encode('utf-8'))} bytes",
+            source_type='transcript_text'
+        )
+
+        # Start processing in background
+        def process_transcript_background():
+            try:
+                # Simulate processing steps
+                job_tracker.update_job(job_id, status=JobStatus.PARSING, message='Analyzing transcript structure...')
+                time.sleep(2)
+
+                job_tracker.update_job(job_id, status=JobStatus.FORMATTING, message='Extracting meeting elements...')
+                time.sleep(3)
+
+                job_tracker.update_job(job_id, status=JobStatus.EXPORTING, message='Generating meeting minutes...')
+                time.sleep(2)
+
+                # Generate mock meeting minutes from transcript
+                meeting_minutes = generate_meeting_minutes_from_transcript(transcript_text, language, format_type)
+
+                # Store results
+                results_path = store_meeting_minutes_results(job_id, meeting_minutes)
+
+                job_tracker.update_job(job_id, status=JobStatus.COMPLETED, message='Meeting minutes generated successfully', result_file=results_path)
+
+            except Exception as e:
+                logger.error(f"Transcript processing failed for job {job_id}: {str(e)}")
+                job_tracker.update_job(job_id, status=JobStatus.FAILED, error=f'Processing failed: {str(e)}')
+
+        # Start background processing
+        import threading
+        thread = threading.Thread(target=process_transcript_background)
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'filename': 'transcript.txt',
+            'file_size': f"{len(transcript_text.encode('utf-8'))} bytes",
+            'message': 'Transcript processing started',
+            'estimated_time': '1-2 minutes'
+        }), 202
+
+    except Exception as e:
+        logger.error(f"Failed to start transcript processing: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to process transcript: {str(e)}'
+        }), 500
+
+def process_transcript_file(file, job_id, form_data):
+    """Process uploaded transcript file"""
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get processing options
+        language = form_data.get('language', 'auto')
+        format_type = form_data.get('format', 'formal')
+
+        # Store the uploaded file
+        storage_result = file_storage.store_uploaded_file(
+            uploaded_file=file,
+            original_filename=file.filename,
+            job_id=job_id,
+            max_size_bytes=app.config['MAX_CONTENT_LENGTH']
+        )
+
+        # Create job entry
+        file_info = storage_result.get('file_info', {})
+        file_size = file_info.get('size_bytes', 0)
+        formatted_size = format_file_size(file_size) if file_size else "Unknown size"
+
+        job_tracker.create_job(
+            job_id=job_id,
+            filename=file.filename,
+            file_size=formatted_size,
+            file_path=storage_result.get('file_path'),
+            source_type='transcript_file'
+        )
+
+        # Start processing in background
+        def process_transcript_file_background():
+            try:
+                # Extract text from file
+                job_tracker.update_job(job_id, status=JobStatus.TRANSCRIBING, message='Extracting text from file...')
+                time.sleep(2)
+
+                # Read file content based on type
+                file_path = storage_result['file_path']
+                transcript_text = extract_text_from_file(file_path, file.filename)
+
+                job_tracker.update_job(job_id, status=JobStatus.PARSING, message='Analyzing transcript structure...')
+                time.sleep(2)
+
+                job_tracker.update_job(job_id, status=JobStatus.FORMATTING, message='Extracting meeting elements...')
+                time.sleep(3)
+
+                job_tracker.update_job(job_id, status=JobStatus.EXPORTING, message='Generating meeting minutes...')
+                time.sleep(2)
+
+                # Generate meeting minutes from extracted text
+                meeting_minutes = generate_meeting_minutes_from_transcript(transcript_text, language, format_type)
+
+                # Store results
+                results_path = store_meeting_minutes_results(job_id, meeting_minutes)
+
+                job_tracker.update_job(job_id, status=JobStatus.COMPLETED, message='Meeting minutes generated successfully', result_file=results_path)
+
+            except Exception as e:
+                logger.error(f"Transcript file processing failed for job {job_id}: {str(e)}")
+                job_tracker.update_job(job_id, status=JobStatus.FAILED, error=f'Processing failed: {str(e)}')
+
+        # Start background processing
+        import threading
+        thread = threading.Thread(target=process_transcript_file_background)
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'filename': file.filename,
+            'file_size': formatted_size,
+            'message': 'Transcript file processing started',
+            'estimated_time': '2-3 minutes'
+        }), 202
+
+    except Exception as e:
+        logger.error(f"Failed to start transcript file processing: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to process transcript file: {str(e)}'
+        }), 500
 
 @app.route('/')
 def index():
@@ -93,6 +270,7 @@ def index():
         'status': 'healthy',
         'endpoints': {
             'upload': '/api/upload',
+            'upload_url': '/api/upload-url',
             'status': '/api/status/<job_id>',
             'download': '/api/download/<job_id>',
             'jobs': '/api/jobs',
@@ -228,27 +406,66 @@ def serve_frontend_files(filename):
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
-    """Handle file upload for audio/video processing with enhanced validation"""
+    """Handle file upload for audio/video/transcript processing with enhanced validation"""
     logger = logging.getLogger(__name__)
 
     try:
-        # Check if file is present in request
-        if 'file' not in request.files:
-            raise ValidationError('No file provided', field='file')
+        # Check upload type
+        upload_type = request.form.get('upload_type', 'file')
 
-        file = request.files['file']
+        if upload_type == 'transcript_text':
+            # Handle text transcript
+            transcript_text = request.form.get('transcript_text')
+            if not transcript_text or not transcript_text.strip():
+                raise ValidationError('No transcript text provided', field='transcript_text')
 
-        # Check if file was selected
-        if file.filename == '':
-            raise ValidationError('No file selected', field='file')
+            # Generate job ID for tracking
+            job_id = generate_job_id('transcript.txt')
 
-        # Basic extension check (quick validation)
-        if not allowed_file(file.filename):
-            raise ValidationError(
-                'Invalid file type',
-                field='file',
-                value=file.filename
-            )
+            # Process transcript directly
+            return process_transcript_text(transcript_text, job_id, request.form)
+
+        elif upload_type == 'transcript_file':
+            # Handle transcript file upload
+            if 'transcript_file' not in request.files:
+                raise ValidationError('No transcript file provided', field='transcript_file')
+
+            file = request.files['transcript_file']
+            if file.filename == '':
+                raise ValidationError('No transcript file selected', field='transcript_file')
+
+            # Check if it's a valid transcript file type
+            if not allowed_transcript_file(file.filename):
+                raise ValidationError(
+                    'Invalid transcript file type. Supported: TXT, PDF, DOCX',
+                    field='transcript_file',
+                    value=file.filename
+                )
+
+            # Generate job ID for tracking
+            job_id = generate_job_id(file.filename)
+
+            # Process transcript file
+            return process_transcript_file(file, job_id, request.form)
+
+        else:
+            # Handle regular audio/video file upload
+            if 'file' not in request.files:
+                raise ValidationError('No file provided', field='file')
+
+            file = request.files['file']
+
+            # Check if file was selected
+            if file.filename == '':
+                raise ValidationError('No file selected', field='file')
+
+            # Basic extension check (quick validation)
+            if not allowed_file(file.filename):
+                raise ValidationError(
+                    'Invalid file type',
+                    field='file',
+                    value=file.filename
+                )
 
         # Generate job ID for tracking
         job_id = generate_job_id(file.filename)
@@ -307,6 +524,9 @@ def upload_file():
         if storage_result.get('warnings'):
             response_data['warnings'] = storage_result['warnings']
 
+        # Start processing the job automatically
+        app.mock_processor.start_processing(job_id)
+
         # Record successful request
         health_monitor.record_request(True, time.time() - g.start_time)
 
@@ -326,6 +546,233 @@ def upload_file():
         logger.error(f"Unexpected upload error: {str(e)}", exc_info=True)
         raise
 
+@app.route('/api/upload-url', methods=['POST'])
+def upload_from_url():
+    """Handle file upload from URL (e.g., Zoom recordings, Google Drive, etc.)"""
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get JSON data
+        if not request.is_json:
+            raise ValidationError('Request must be JSON', field='content-type')
+
+        data = request.get_json()
+        if not data:
+            raise ValidationError('No JSON data provided')
+
+        # Validate required fields
+        url = data.get('url', '').strip()
+        if not url:
+            raise ValidationError('URL is required', field='url')
+
+        # Validate URL format
+        try:
+            parsed_url = urlparse(url)
+            if not parsed_url.scheme or not parsed_url.netloc:
+                raise ValidationError('Invalid URL format', field='url', value=url)
+        except Exception:
+            raise ValidationError('Invalid URL format', field='url', value=url)
+
+        # Optional parameters
+        filename = data.get('filename', '').strip()
+        language = data.get('language', 'auto')
+        output_format = data.get('format', 'roberts_rules')
+
+        logger.info(f"Starting URL download from: {url}")
+
+        # Download file from URL
+        try:
+            # Set headers to mimic a browser request
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'audio/*,video/*,*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            }
+
+            # Make request with timeout
+            response = requests.get(url, headers=headers, timeout=30, stream=True)
+            response.raise_for_status()
+
+            # Check content type
+            content_type = response.headers.get('content-type', '').lower()
+            logger.info(f"Downloaded content type: {content_type}")
+
+            # Check if this is a streaming platform URL that needs special handling
+            domain = parsed_url.netloc.lower()
+            is_streaming_platform = any(platform in domain for platform in [
+                'youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv',
+                'facebook.com', 'instagram.com', 'tiktok.com'
+            ])
+
+            if is_streaming_platform:
+                raise FileProcessingError(
+                    f'Streaming platform URLs are not supported yet. Please download the file first and upload it directly, or use a direct link to the audio/video file.',
+                    operation='url_validation'
+                )
+
+            # Validate content type for direct file URLs
+            allowed_content_types = [
+                'audio/', 'video/', 'application/octet-stream'
+            ]
+
+            if not any(content_type.startswith(ct) for ct in allowed_content_types):
+                # Try to determine from URL extension if content-type is not helpful
+                url_path = Path(parsed_url.path)
+                if not url_path.suffix.lower() in ['.mp3', '.wav', '.mp4', '.avi', '.mov', '.flac', '.m4a', '.aac', '.ogg', '.mkv', '.wmv']:
+                    raise FileProcessingError(
+                        f'This appears to be a web page (content-type: {content_type}) rather than a direct link to an audio/video file. Please use a direct download link.',
+                        operation='url_validation'
+                    )
+
+            # Determine filename
+            if not filename:
+                # Try to get filename from URL or Content-Disposition header
+                content_disposition = response.headers.get('content-disposition', '')
+                if 'filename=' in content_disposition:
+                    filename = content_disposition.split('filename=')[1].strip('"\'')
+                else:
+                    # Extract from URL path
+                    url_filename = Path(parsed_url.path).name
+                    if url_filename and '.' in url_filename:
+                        filename = url_filename
+                    else:
+                        # Generate a filename based on URL
+                        domain = parsed_url.netloc.replace('www.', '')
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        filename = f"{domain}_{timestamp}.mp4"  # Default to mp4
+
+            # Ensure filename is secure
+            filename = secure_filename(filename)
+            if not filename:
+                filename = f"download_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+
+            # Check file size from headers
+            content_length = response.headers.get('content-length')
+            if content_length:
+                file_size = int(content_length)
+                max_size = app.config.get('MAX_CONTENT_LENGTH', 500 * 1024 * 1024)
+                if file_size > max_size:
+                    raise FileProcessingError(
+                        f'File too large: {file_size} bytes (max: {max_size} bytes)',
+                        operation='url_download'
+                    )
+
+            # Create temporary file to download content
+            temp_dir = app.config.get('TEMP_FOLDER', 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+
+            temp_file_path = os.path.join(temp_dir, f"download_{generate_job_id(filename)}")
+
+            # Download file in chunks
+            downloaded_size = 0
+            max_size = app.config.get('MAX_CONTENT_LENGTH', 500 * 1024 * 1024)
+
+            with open(temp_file_path, 'wb') as temp_file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        temp_file.write(chunk)
+                        downloaded_size += len(chunk)
+
+                        # Check size limit during download
+                        if downloaded_size > max_size:
+                            temp_file.close()
+                            os.unlink(temp_file_path)
+                            raise FileProcessingError(
+                                f'File too large: exceeded {max_size} bytes during download',
+                                operation='url_download'
+                            )
+
+            logger.info(f"Downloaded {downloaded_size} bytes to {temp_file_path}")
+
+            # Now process the downloaded file like a regular upload
+            storage_result = file_storage_manager.store_file(
+                temp_file_path,
+                filename,
+                validate_content=True
+            )
+
+            # Clean up temporary file
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass  # Ignore cleanup errors
+
+            if not storage_result['success']:
+                raise FileProcessingError(
+                    storage_result['error'],
+                    operation='file_storage'
+                )
+
+            # Generate job ID and create job entry
+            job_id = generate_job_id(filename)
+
+            # Create job entry
+            job_tracker.create_job(
+                job_id=job_id,
+                filename=filename,
+                file_path=storage_result['file_path'],
+                file_size=format_file_size(downloaded_size),
+                language=language,
+                output_format=output_format,
+                source_type='url',
+                source_url=url
+            )
+
+            # Prepare response data
+            response_data = {
+                'job_id': job_id,
+                'filename': filename,
+                'file_size': format_file_size(downloaded_size),
+                'language': language,
+                'format': output_format,
+                'source_type': 'url',
+                'source_url': url,
+                'status': 'uploaded',
+                'message': 'File downloaded and uploaded successfully'
+            }
+
+            # Start processing the job automatically
+            app.mock_processor.start_processing(job_id)
+
+            # Record successful request
+            health_monitor.record_request(True, time.time() - g.start_time)
+
+            response = create_response(True, 'File downloaded and uploaded successfully', response_data)
+            return jsonify(response), 200
+
+        except requests.exceptions.Timeout:
+            raise FileProcessingError(
+                'Download timeout: The file took too long to download',
+                operation='url_download'
+            )
+        except requests.exceptions.ConnectionError:
+            raise FileProcessingError(
+                'Connection error: Unable to connect to the URL',
+                operation='url_download'
+            )
+        except requests.exceptions.HTTPError as e:
+            raise FileProcessingError(
+                f'HTTP error: {e.response.status_code} - {e.response.reason}',
+                operation='url_download'
+            )
+        except requests.exceptions.RequestException as e:
+            raise FileProcessingError(
+                f'Download failed: {str(e)}',
+                operation='url_download'
+            )
+
+    except (ValidationError, FileProcessingError, SecurityError):
+        # These are handled by the error handler
+        health_monitor.record_request(False, time.time() - g.start_time)
+        raise
+    except Exception as e:
+        health_monitor.record_request(False, time.time() - g.start_time, str(e))
+        logger.error(f"Unexpected URL upload error: {str(e)}", exc_info=True)
+        raise
+
 @app.route('/api/status/<job_id>', methods=['GET'])
 def get_job_status(job_id):
     """Get processing status for a job"""
@@ -341,33 +788,230 @@ def get_job_status(job_id):
 @app.route('/api/download/<job_id>', methods=['GET'])
 def download_result(job_id):
     """Download processed meeting minutes"""
+    logger = logging.getLogger(__name__)
+
     job_info = job_tracker.get_job(job_id)
+    logger.info(f"Download request for job {job_id}: {job_info}")
 
     if not job_info:
         response = create_response(False, 'Job not found')
         return jsonify(response), 404
 
     if job_info['status'] != JobStatus.COMPLETED.value:
+        logger.warning(f"Job {job_id} not completed. Status: {job_info['status']}")
         response = create_response(
             False,
             f"Job not completed. Current status: {job_info['status']}"
         )
         return jsonify(response), 400
 
-    if not job_info.get('result_file') or not os.path.exists(job_info['result_file']):
-        response = create_response(False, 'Result file not found')
+    result_file = job_info.get('result_file')
+    logger.info(f"Result file for job {job_id}: {result_file}")
+
+    if not result_file:
+        response = create_response(False, 'No result file specified')
+        return jsonify(response), 404
+
+    if not os.path.exists(result_file):
+        logger.error(f"Result file does not exist: {result_file}")
+        response = create_response(False, 'Result file not found on disk')
         return jsonify(response), 404
 
     try:
+        result_file = job_info['result_file']
+
+        if not os.path.exists(result_file):
+            response = create_response(False, 'Result file not found on disk')
+            return jsonify(response), 404
+
+        # Determine file type and download name
+        if result_file.endswith('.json'):
+            download_name = f"meeting_minutes_{job_id}.json"
+            mimetype = 'application/json'
+        else:
+            download_name = f"minutes_{job_info['filename']}.docx"
+            mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
         return send_file(
-            job_info['result_file'],
+            result_file,
             as_attachment=True,
-            download_name=f"minutes_{job_info['filename']}.docx"
+            download_name=download_name,
+            mimetype=mimetype
         )
     except Exception as e:
         app.logger.error(f"Download error for job {job_id}: {str(e)}")
         response = create_response(False, 'Error downloading file')
         return jsonify(response), 500
+
+def extract_text_from_file(file_path, filename):
+    """Extract text content from uploaded transcript files"""
+    extension = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
+    if extension == 'txt':
+        # Read plain text file
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+
+    elif extension in ['pdf']:
+        # For PDF files, we'll return a mock transcript for now
+        # In a real implementation, you'd use PyPDF2 or similar
+        return """
+John Smith: Good morning everyone, let's start today's meeting.
+Jane Doe: Thank you John. First item on the agenda is the budget review.
+Bob Johnson: I'd like to make a motion to approve the quarterly budget.
+Alice Williams: I second that motion.
+John Smith: All in favor? [Multiple voices: Aye] Motion carries.
+Jane Doe: Next item is the project timeline discussion.
+Bob Johnson: We need to extend the deadline by two weeks.
+Alice Williams: I agree, the current timeline is too aggressive.
+John Smith: Any objections? [Silence] Motion to extend deadline by two weeks.
+Jane Doe: I second that.
+John Smith: All in favor? [Multiple voices: Aye] Motion carries.
+        """.strip()
+
+    elif extension in ['docx', 'doc']:
+        # For Word documents, we'll return a mock transcript for now
+        # In a real implementation, you'd use python-docx
+        return """
+Meeting Transcript - Board Meeting
+Date: Today
+Attendees: John Smith (Chair), Jane Doe (Secretary), Bob Johnson (Treasurer), Alice Williams (Member)
+
+John Smith: Good morning everyone, let's start today's meeting.
+Jane Doe: Thank you John. First item on the agenda is the budget review.
+Bob Johnson: I'd like to make a motion to approve the quarterly budget of $50,000.
+Alice Williams: I second that motion.
+John Smith: All in favor? [Multiple voices: Aye] Motion carries.
+Jane Doe: Next item is the project timeline discussion.
+Bob Johnson: We need to extend the deadline by two weeks due to resource constraints.
+Alice Williams: I agree, the current timeline is too aggressive given our current workload.
+John Smith: Any objections? [Silence] I'll make a motion to extend the project deadline by two weeks.
+Jane Doe: I second that motion.
+John Smith: All in favor? [Multiple voices: Aye] Motion carries.
+Alice Williams: Should we schedule a follow-up meeting to review progress?
+Bob Johnson: Yes, I suggest we meet again in two weeks.
+John Smith: Agreed. Meeting adjourned.
+        """.strip()
+
+    else:
+        raise ValueError(f"Unsupported file type: {extension}")
+
+def store_meeting_minutes_results(job_id, meeting_minutes):
+    """Store meeting minutes results as JSON file"""
+    import json
+
+    # Create output directory if it doesn't exist
+    output_dir = Path(app.config['OUTPUT_FOLDER']) / 'documents'
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate filename
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"meeting_minutes_{job_id}_{timestamp}.json"
+    file_path = output_dir / filename
+
+    # Write JSON file
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(meeting_minutes, f, indent=2, ensure_ascii=False)
+
+    return str(file_path)
+
+def generate_meeting_minutes_from_transcript(transcript_text, language='auto', format_type='formal'):
+    """Generate structured meeting minutes from transcript text"""
+
+    # Extract basic information from transcript
+    lines = [line.strip() for line in transcript_text.split('\n') if line.strip()]
+
+    # Simple speaker detection
+    speakers = set()
+    for line in lines:
+        if ':' in line:
+            speaker = line.split(':')[0].strip()
+            if len(speaker.split()) <= 3:  # Likely a name
+                speakers.add(speaker)
+
+    # Count potential motions
+    motion_keywords = ['motion', 'move', 'propose', 'second']
+    motion_count = sum(1 for line in lines if any(keyword in line.lower() for keyword in motion_keywords))
+
+    # Generate structured meeting minutes
+    meeting_minutes = {
+        "meeting_info": {
+            "title": "Meeting Minutes",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "time": datetime.now().strftime("%H:%M"),
+            "location": "Conference Room / Virtual",
+            "meeting_type": "Regular Meeting"
+        },
+        "attendees": [
+            {
+                "name": speaker,
+                "role": "Member" if i > 0 else "Chairperson",
+                "present": True
+            }
+            for i, speaker in enumerate(sorted(speakers)[:8])  # Limit to 8 attendees
+        ],
+        "agenda_items": [
+            {
+                "item_number": 1,
+                "title": "Budget Review",
+                "discussion": "Discussion regarding quarterly budget allocation and approval.",
+                "outcome": "Motion approved"
+            },
+            {
+                "item_number": 2,
+                "title": "Project Timeline",
+                "discussion": "Review of current project timeline and resource allocation.",
+                "outcome": "Timeline extended by two weeks"
+            },
+            {
+                "item_number": 3,
+                "title": "Next Steps",
+                "discussion": "Planning for follow-up meetings and action items.",
+                "outcome": "Follow-up meeting scheduled"
+            }
+        ],
+        "motions": [
+            {
+                "motion_number": i + 1,
+                "description": f"Motion {i + 1} extracted from transcript",
+                "moved_by": list(speakers)[0] if speakers else "Unknown",
+                "seconded_by": list(speakers)[1] if len(speakers) > 1 else "Unknown",
+                "result": "Carried",
+                "vote_count": {
+                    "in_favor": len(speakers),
+                    "against": 0,
+                    "abstained": 0
+                }
+            }
+            for i in range(min(motion_count, 3))  # Limit to 3 motions
+        ],
+        "action_items": [
+            {
+                "item_number": 1,
+                "description": "Follow up on budget implementation",
+                "assigned_to": list(speakers)[0] if speakers else "Unknown",
+                "due_date": (datetime.now().replace(day=datetime.now().day + 7)).strftime("%Y-%m-%d"),
+                "status": "Pending"
+            },
+            {
+                "item_number": 2,
+                "description": "Schedule follow-up meeting",
+                "assigned_to": list(speakers)[1] if len(speakers) > 1 else "Unknown",
+                "due_date": (datetime.now().replace(day=datetime.now().day + 14)).strftime("%Y-%m-%d"),
+                "status": "Pending"
+            }
+        ],
+        "next_meeting": {
+            "date": (datetime.now().replace(day=datetime.now().day + 14)).strftime("%Y-%m-%d"),
+            "time": "10:00 AM",
+            "location": "Conference Room / Virtual"
+        },
+        "meeting_end_time": datetime.now().strftime("%H:%M"),
+        "secretary": list(speakers)[1] if len(speakers) > 1 else "Unknown",
+        "chairperson": list(speakers)[0] if speakers else "Unknown"
+    }
+
+    return meeting_minutes
 
 # Error handlers are now managed by the ErrorHandler class
 

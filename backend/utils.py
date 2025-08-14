@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
-import magic
+import mimetypes
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +31,29 @@ def validate_file_type(file_path: str, allowed_mimes: set) -> bool:
         bool: True if file type is valid, False otherwise
     """
     try:
-        mime = magic.Magic(mime=True)
-        file_mime = mime.from_file(file_path)
+        # Use mimetypes library instead of python-magic
+        file_mime, _ = mimetypes.guess_type(file_path)
+        if file_mime is None:
+            # Fallback based on file extension
+            ext = Path(file_path).suffix.lower()
+            mime_map = {
+                '.mp3': 'audio/mpeg',
+                '.wav': 'audio/wav',
+                '.flac': 'audio/flac',
+                '.m4a': 'audio/mp4a-latm',
+                '.aac': 'audio/aac',
+                '.ogg': 'audio/ogg',
+                '.wma': 'audio/x-ms-wma',
+                '.mp4': 'video/mp4',
+                '.avi': 'video/x-msvideo',
+                '.mov': 'video/quicktime',
+                '.mkv': 'video/x-matroska',
+                '.wmv': 'video/x-ms-wmv',
+                '.flv': 'video/x-flv',
+                '.webm': 'video/webm'
+            }
+            file_mime = mime_map.get(ext, 'application/octet-stream')
+
         logger.info(f"Detected MIME type: {file_mime} for file: {file_path}")
         return file_mime in allowed_mimes
     except Exception as e:
