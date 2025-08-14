@@ -8,11 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-# Add the backend directory to the Python path
-backend_dir = Path(__file__).parent / "backend"
-sys.path.insert(0, str(backend_dir))
-
-# Import the Flask app
+# Import the Flask app from current directory
 from app import app
 
 if __name__ == "__main__":
@@ -27,12 +23,14 @@ if __name__ == "__main__":
     print(f"Output folder: {app.config.get('OUTPUT_FOLDER')}")
     print("=" * 40)
     print("Server will be available at: http://localhost:5000")
+    print("Frontend will be available at: http://localhost:5000/frontend/")
     print("API endpoints:")
     print("  GET  /                    - Health check")
     print("  POST /api/upload          - Upload audio/video file")
     print("  GET  /api/status/<job_id> - Get job status")
     print("  GET  /api/download/<job_id> - Download result")
     print("  GET  /api/jobs            - List all jobs")
+    print("  GET  /frontend/           - Web interface")
     print("=" * 40)
     print("Press Ctrl+C to stop the server")
     print()
