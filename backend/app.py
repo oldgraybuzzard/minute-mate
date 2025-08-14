@@ -28,6 +28,8 @@ from logging_config import setup_logging
 from error_handlers import ErrorHandler, ValidationError, FileProcessingError, SecurityError
 from middleware import setup_middleware, health_monitor
 from mock_processor import get_mock_processor
+from ai_processor import AIProcessor
+from document_generator import DocumentGenerator
 
 # Import processing modules (will be created next)
 # from modules.transcriber import AudioTranscriber
@@ -84,7 +86,15 @@ file_storage = FileStorageManager(
 cleanup_scheduler = create_cleanup_scheduler(file_storage, job_tracker, app.config)
 cleanup_scheduler.start()
 
-# Initialize mock processor
+# Initialize AI processor
+ai_processor = AIProcessor()
+app.ai_processor = ai_processor
+
+# Initialize document generator
+document_generator = DocumentGenerator(app.config['OUTPUT_FOLDER'] + '/documents')
+app.document_generator = document_generator
+
+# Initialize mock processor (fallback)
 mock_processor = get_mock_processor(job_tracker, file_storage)
 app.mock_processor = mock_processor
 
@@ -133,20 +143,21 @@ def process_transcript_text(transcript_text, job_id, form_data):
         # Start processing in background
         def process_transcript_background():
             try:
-                # Simulate processing steps
-                job_tracker.update_job(job_id, status=JobStatus.PARSING, message='Analyzing transcript structure...')
-                time.sleep(2)
+                # AI-powered processing
+                job_tracker.update_job(job_id, status=JobStatus.PARSING, message='Analyzing transcript with AI...')
 
-                job_tracker.update_job(job_id, status=JobStatus.FORMATTING, message='Extracting meeting elements...')
-                time.sleep(3)
+                # Try AI processing first
+                if app.ai_processor.is_available():
+                    logger.info(f"Processing transcript with AI for job {job_id}")
+                    meeting_minutes = app.ai_processor.process_transcript(transcript_text, 'transcript.txt')
+                else:
+                    logger.info(f"AI not available, using enhanced mock processing for job {job_id}")
+                    job_tracker.update_job(job_id, status=JobStatus.FORMATTING, message='Using enhanced processing...')
+                    meeting_minutes = generate_meeting_minutes_from_transcript(transcript_text, language, format_type)
 
-                job_tracker.update_job(job_id, status=JobStatus.EXPORTING, message='Generating meeting minutes...')
-                time.sleep(2)
+                job_tracker.update_job(job_id, status=JobStatus.EXPORTING, message='Generating professional documents...')
 
-                # Generate mock meeting minutes from transcript
-                meeting_minutes = generate_meeting_minutes_from_transcript(transcript_text, language, format_type)
-
-                # Store results
+                # Store results using document generator
                 results_path = store_meeting_minutes_results(job_id, meeting_minutes)
 
                 job_tracker.update_job(job_id, status=JobStatus.COMPLETED, message='Meeting minutes generated successfully', result_file=results_path)
@@ -218,17 +229,18 @@ def process_transcript_file(file, job_id, form_data):
                 file_path = storage_result['file_path']
                 transcript_text = extract_text_from_file(file_path, file.filename)
 
-                job_tracker.update_job(job_id, status=JobStatus.PARSING, message='Analyzing transcript structure...')
-                time.sleep(2)
+                job_tracker.update_job(job_id, status=JobStatus.PARSING, message='Analyzing transcript with AI...')
 
-                job_tracker.update_job(job_id, status=JobStatus.FORMATTING, message='Extracting meeting elements...')
-                time.sleep(3)
+                # Try AI processing first
+                if app.ai_processor.is_available():
+                    logger.info(f"Processing transcript file with AI for job {job_id}")
+                    meeting_minutes = app.ai_processor.process_transcript(transcript_text, file.filename)
+                else:
+                    logger.info(f"AI not available, using enhanced mock processing for job {job_id}")
+                    job_tracker.update_job(job_id, status=JobStatus.FORMATTING, message='Using enhanced processing...')
+                    meeting_minutes = generate_meeting_minutes_from_transcript(transcript_text, language, format_type)
 
-                job_tracker.update_job(job_id, status=JobStatus.EXPORTING, message='Generating meeting minutes...')
-                time.sleep(2)
-
-                # Generate meeting minutes from extracted text
-                meeting_minutes = generate_meeting_minutes_from_transcript(transcript_text, language, format_type)
+                job_tracker.update_job(job_id, status=JobStatus.EXPORTING, message='Generating professional documents...')
 
                 # Store results
                 results_path = store_meeting_minutes_results(job_id, meeting_minutes)
@@ -825,12 +837,21 @@ def download_result(job_id):
             return jsonify(response), 404
 
         # Determine file type and download name
-        if result_file.endswith('.json'):
+        if result_file.endswith('.html'):
+            download_name = f"meeting_minutes_{job_id}.html"
+            mimetype = 'text/html'
+        elif result_file.endswith('.docx'):
+            download_name = f"meeting_minutes_{job_id}.docx"
+            mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        elif result_file.endswith('.pdf'):
+            download_name = f"meeting_minutes_{job_id}.pdf"
+            mimetype = 'application/pdf'
+        elif result_file.endswith('.json'):
             download_name = f"meeting_minutes_{job_id}.json"
             mimetype = 'application/json'
         else:
-            download_name = f"minutes_{job_info['filename']}.docx"
-            mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            download_name = f"meeting_minutes_{job_id}.txt"
+            mimetype = 'text/plain'
 
         return send_file(
             result_file,
@@ -897,23 +918,18 @@ John Smith: Agreed. Meeting adjourned.
         raise ValueError(f"Unsupported file type: {extension}")
 
 def store_meeting_minutes_results(job_id, meeting_minutes):
-    """Store meeting minutes results as JSON file"""
-    import json
+    """Store meeting minutes results in multiple user-friendly formats"""
 
-    # Create output directory if it doesn't exist
-    output_dir = Path(app.config['OUTPUT_FOLDER']) / 'documents'
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # Generate documents in multiple formats
+    document_paths = app.document_generator.generate_documents(meeting_minutes, job_id)
 
-    # Generate filename
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"meeting_minutes_{job_id}_{timestamp}.json"
-    file_path = output_dir / filename
-
-    # Write JSON file
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(meeting_minutes, f, indent=2, ensure_ascii=False)
-
-    return str(file_path)
+    # Return the primary document path (prefer DOCX for editing, then HTML, then JSON)
+    if 'docx' in document_paths:
+        return document_paths['docx']
+    elif 'html' in document_paths:
+        return document_paths['html']
+    else:
+        return document_paths.get('json', '')
 
 def generate_meeting_minutes_from_transcript(transcript_text, language='auto', format_type='formal'):
     """Generate structured meeting minutes from transcript text"""

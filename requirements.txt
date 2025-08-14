@@ -8,6 +8,7 @@ pydub==0.25.1
 python-magic==0.4.27
 
 # AI and transcription
+openai==1.35.0
 openai-whisper==20231117
 torch==2.1.0
 torchaudio==2.1.0
