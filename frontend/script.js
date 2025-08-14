@@ -64,8 +64,9 @@ class MinuteMateApp {
         this.processingTime = document.getElementById('processing-time');
         this.attendeesCount = document.getElementById('attendees-count');
         this.motionsCount = document.getElementById('motions-count');
-        this.downloadDocxBtn = document.getElementById('download-docx');
-        this.downloadPdfBtn = document.getElementById('download-pdf');
+        this.downloadPrimaryBtn = document.getElementById('download-primary');
+        this.downloadHtmlBtn = document.getElementById('download-html');
+        this.downloadJsonBtn = document.getElementById('download-json');
         this.viewPreviewBtn = document.getElementById('view-preview');
 
         // Error elements
@@ -138,8 +139,9 @@ class MinuteMateApp {
         this.cancelBtn.addEventListener('click', this.cancelProcessing.bind(this));
 
         // Results events
-        this.downloadDocxBtn.addEventListener('click', () => this.downloadFile());
-        this.downloadPdfBtn.addEventListener('click', () => this.downloadFile());
+        this.downloadPrimaryBtn.addEventListener('click', () => this.downloadFile('primary'));
+        this.downloadHtmlBtn.addEventListener('click', () => this.downloadFile('html'));
+        this.downloadJsonBtn.addEventListener('click', () => this.downloadFile('json'));
         this.viewPreviewBtn.addEventListener('click', this.viewPreview.bind(this));
 
         // Error events
@@ -734,15 +736,18 @@ class MinuteMateApp {
         this.showSection('results');
     }
 
-    async downloadFile() {
+    async downloadFile(format = 'primary') {
         if (!this.currentJobId) {
             this.showToast('No job ID available for download', 'error');
             return;
         }
 
         try {
-            this.showLoading(`Preparing download...`);
+            const formatText = format === 'primary' ? 'DOCX' : format.toUpperCase();
+            this.showLoading(`Preparing ${formatText} download...`);
 
+            // For now, all formats use the same endpoint since backend prioritizes formats
+            // In the future, we could add format-specific endpoints
             const response = await fetch(`${this.apiBaseUrl}/api/download/${this.currentJobId}`);
 
             if (response.ok) {
@@ -779,9 +784,97 @@ class MinuteMateApp {
         }
     }
 
-    viewPreview() {
-        // In a real implementation, this would open a modal or new window with the preview
-        this.showToast('Preview feature coming soon!', 'warning');
+    async viewPreview() {
+        if (!this.currentJobId) {
+            this.showToast('No job ID available for preview', 'error');
+            return;
+        }
+
+        try {
+            this.showLoading('Loading preview...');
+
+            // Fetch the HTML preview from the server
+            const response = await fetch(`${this.apiBaseUrl}/api/preview/${this.currentJobId}`);
+
+            if (response.ok) {
+                const blob = await response.blob();
+
+                // Check if it's an HTML file
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    // Create a blob URL and open in new window
+                    const url = window.URL.createObjectURL(blob);
+                    const previewWindow = window.open(url, '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+
+                    if (previewWindow) {
+                        // Clean up the blob URL after a delay
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                        }, 1000);
+                        this.showToast('Preview opened in new window', 'success');
+                    } else {
+                        this.showToast('Please allow popups to view preview', 'warning');
+                    }
+                } else {
+                    // If not HTML, show a modal with preview info
+                    this.showPreviewModal();
+                }
+            } else {
+                const result = await response.json();
+                throw new Error(result.message || 'Preview failed');
+            }
+        } catch (error) {
+            this.showToast('Preview failed: ' + error.message, 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    showPreviewModal() {
+        // Create a simple preview modal for non-HTML files
+        const modal = document.createElement('div');
+        modal.className = 'preview-modal';
+        modal.innerHTML = `
+            <div class="preview-modal-content">
+                <div class="preview-modal-header">
+                    <h3>Meeting Minutes Preview</h3>
+                    <button class="preview-modal-close">&times;</button>
+                </div>
+                <div class="preview-modal-body">
+                    <p>📄 Your meeting minutes have been generated successfully!</p>
+                    <p>The document contains:</p>
+                    <ul>
+                        <li>✅ Meeting information and attendees</li>
+                        <li>✅ Agenda items and discussions</li>
+                        <li>✅ Motions and voting results</li>
+                        <li>✅ Action items and key decisions</li>
+                    </ul>
+                    <p>Download the document to view the full content.</p>
+                </div>
+                <div class="preview-modal-footer">
+                    <button class="download-btn primary" onclick="this.closest('.preview-modal').remove(); app.downloadFile('primary')">
+                        Download DOCX
+                    </button>
+                    <button class="download-btn secondary" onclick="this.closest('.preview-modal').remove()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add click handler for close button
+        modal.querySelector('.preview-modal-close').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Add click handler for modal background
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+
+        document.body.appendChild(modal);
     }
 
     retryProcessing() {

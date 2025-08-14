@@ -797,6 +797,56 @@ def get_job_status(job_id):
     response = create_response(True, 'Job status retrieved', job_info)
     return jsonify(response), 200
 
+@app.route('/api/preview/<job_id>', methods=['GET'])
+def preview_result(job_id):
+    """Preview meeting minutes in HTML format"""
+    logger = logging.getLogger(__name__)
+
+    job_info = job_tracker.get_job(job_id)
+    logger.info(f"Preview request for job {job_id}: {job_info}")
+
+    if not job_info:
+        response = create_response(False, 'Job not found')
+        return jsonify(response), 404
+
+    if job_info['status'] != JobStatus.COMPLETED.value:
+        response = create_response(
+            False,
+            f"Job not completed. Current status: {job_info['status']}"
+        )
+        return jsonify(response), 400
+
+    result_file = job_info.get('result_file')
+    if not result_file:
+        response = create_response(False, 'No result file specified')
+        return jsonify(response), 404
+
+    # Look for HTML version of the file
+    html_file = result_file.replace('.docx', '.html').replace('.json', '.html')
+    if not html_file.endswith('.html'):
+        html_file = result_file.rsplit('.', 1)[0] + '.html'
+
+    # Check if HTML file exists in the same directory
+    import glob
+    output_dir = Path(app.config['OUTPUT_FOLDER']) / 'documents'
+    html_files = glob.glob(str(output_dir / f"meeting_minutes_{job_id}_*.html"))
+
+    if html_files:
+        html_file = html_files[0]  # Use the most recent one
+        try:
+            return send_file(
+                html_file,
+                mimetype='text/html',
+                as_attachment=False  # Display in browser, don't download
+            )
+        except Exception as e:
+            logger.error(f"Preview error for job {job_id}: {str(e)}")
+            response = create_response(False, 'Error loading preview')
+            return jsonify(response), 500
+    else:
+        response = create_response(False, 'HTML preview not available')
+        return jsonify(response), 404
+
 @app.route('/api/download/<job_id>', methods=['GET'])
 def download_result(job_id):
     """Download processed meeting minutes"""
@@ -923,8 +973,10 @@ def store_meeting_minutes_results(job_id, meeting_minutes):
     # Generate documents in multiple formats
     document_paths = app.document_generator.generate_documents(meeting_minutes, job_id)
 
-    # Return the primary document path (prefer DOCX for editing, then HTML, then JSON)
-    if 'docx' in document_paths:
+    # Return the primary document path (prefer PDF for sharing, then DOCX for editing, then HTML, then JSON)
+    if 'pdf' in document_paths:
+        return document_paths['pdf']
+    elif 'docx' in document_paths:
         return document_paths['docx']
     elif 'html' in document_paths:
         return document_paths['html']
