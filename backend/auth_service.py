@@ -108,17 +108,21 @@ class AuthService:
         try:
             # Find user by email or username
             user = User.query.filter(
-                (User.email == login_identifier.lower()) | 
+                (User.email == login_identifier.lower()) |
                 (User.username == login_identifier.lower())
             ).first()
-            
+
             if not user:
+                logger.error(f"User not found for login identifier: {login_identifier}")
                 return False, "Invalid credentials"
+
+            logger.info(f"Found user for authentication: {user.username} ({user.email})")
             
             if not user.is_active:
                 return False, "Account is deactivated"
             
             if not user.check_password(password):
+                logger.error(f"Password check failed for user: {user.username}")
                 return False, "Invalid credentials"
             
             # Update last login

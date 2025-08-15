@@ -7,6 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
+import hashlib
+import os
 
 db = SQLAlchemy()
 
@@ -41,12 +43,41 @@ class User(UserMixin, db.Model):
     templates = db.relationship('MeetingTemplate', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
-        """Set password hash"""
-        self.password_hash = generate_password_hash(password)
-    
+        """Set password hash using compatible method"""
+        try:
+            # Use werkzeug's generate_password_hash with pbkdf2 (most compatible)
+            self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+            print(f"DEBUG: Password hash set using werkzeug: {self.password_hash[:50]}...")
+        except Exception as e:
+            print(f"DEBUG: Werkzeug password hashing failed: {e}")
+            # Fallback to simple pbkdf2 if werkzeug fails
+            salt = os.urandom(32)
+            pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+            self.password_hash = salt.hex() + ':' + pwdhash.hex()
+            print(f"DEBUG: Password hash set using custom pbkdf2: {self.password_hash[:50]}...")
+
     def check_password(self, password):
         """Check password against hash"""
-        return check_password_hash(self.password_hash, password)
+        try:
+            print(f"DEBUG: Checking password for user, hash starts with: {self.password_hash[:50]}...")
+            print(f"DEBUG: Password hash contains colon: {':' in self.password_hash}")
+
+            # Try werkzeug first (should work for most cases)
+            if not ':' in self.password_hash or self.password_hash.startswith('pbkdf2:'):
+                result = check_password_hash(self.password_hash, password)
+                print(f"DEBUG: Werkzeug password check result: {result}")
+                return result
+            else:
+                # Handle custom pbkdf2 format (fallback)
+                salt_hex, stored_hash = self.password_hash.split(':')
+                salt = bytes.fromhex(salt_hex)
+                pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+                result = pwdhash.hex() == stored_hash
+                print(f"DEBUG: Custom pbkdf2 password check result: {result}")
+                return result
+        except Exception as e:
+            print(f"DEBUG: Password check exception: {e}")
+            return False
     
     @property
     def full_name(self):

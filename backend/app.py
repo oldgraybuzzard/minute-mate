@@ -68,7 +68,8 @@ def create_app():
     # Setup authentication if available
     if AUTH_AVAILABLE:
         # Database setup
-        app.config['SQLALCHEMY_DATABASE_URI'] = app.config.get('DATABASE_URL', 'sqlite:///minutemate.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'minutemate.db')
+        app.config['SQLALCHEMY_DATABASE_URI'] = app.config.get('DATABASE_URL', f'sqlite:///{db_path}')
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         db.init_app(app)
 
@@ -91,7 +92,12 @@ def create_app():
 
         # Create database tables
         with app.app_context():
-            db.create_all()
+            try:
+                db.create_all()
+                app.logger.info(f"Database tables created successfully at: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            except Exception as e:
+                app.logger.error(f"Database creation failed: {str(e)}")
+                raise
 
         app.logger.info("Authentication system initialized")
     else:
