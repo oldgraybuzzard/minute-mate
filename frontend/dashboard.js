@@ -37,6 +37,12 @@ class DashboardApp {
         this.searchInput = document.getElementById('search-input');
         this.searchBtn = document.getElementById('search-btn');
         this.searchResults = document.getElementById('search-results');
+
+        // Upload edited document elements
+        this.uploadEditedModal = document.getElementById('upload-edited-modal');
+        this.uploadEditedForm = document.getElementById('upload-edited-form');
+        this.editedFileInput = document.getElementById('edited-file-input');
+        this.comparisonResults = document.getElementById('comparison-results');
         
         // UI elements
         this.loadingOverlay = document.getElementById('loading-overlay');
@@ -100,6 +106,26 @@ class DashboardApp {
         this.searchModal.addEventListener('click', (e) => {
             if (e.target === this.searchModal) {
                 this.closeSearchModal();
+            }
+        });
+
+        // Upload edited document
+        this.uploadEditedForm.addEventListener('submit', this.uploadEditedDocument.bind(this));
+
+        // Modal close handlers
+        document.querySelectorAll('.modal-close').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const modal = e.target.closest('.modal');
+                if (modal) {
+                    modal.classList.remove('show');
+                }
+            });
+        });
+
+        // Close modals when clicking outside
+        this.uploadEditedModal.addEventListener('click', (e) => {
+            if (e.target === this.uploadEditedModal) {
+                this.uploadEditedModal.classList.remove('show');
             }
         });
     }
@@ -212,11 +238,27 @@ class DashboardApp {
                         <button class="btn-small primary" onclick="window.open('/api/download/${meeting.job_id}', '_blank')">
                             <i class="fas fa-download"></i> Download
                         </button>
+                        ${!meeting.has_edited_version ? `
+                            <button class="btn-small secondary" onclick="dashboardApp.showUploadEditedModal('${meeting.id}')">
+                                <i class="fas fa-upload"></i> Upload Edited
+                            </button>
+                        ` : `
+                            <button class="btn-small success" onclick="dashboardApp.downloadPersonalized('${meeting.id}')">
+                                <i class="fas fa-magic"></i> Personalized
+                            </button>
+                        `}
                     ` : ''}
                     <button class="btn-small secondary" onclick="dashboardApp.viewMeeting('${meeting.id}')">
                         <i class="fas fa-eye"></i> View
                     </button>
                 </div>
+                ${meeting.has_edited_version ? `
+                    <div class="meeting-badges">
+                        <span class="badge success">
+                            <i class="fas fa-brain"></i> Preferences Learned
+                        </span>
+                    </div>
+                ` : ''}
             </div>
         `).join('');
 
@@ -381,6 +423,122 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
         } else {
             icon.className = 'fas fa-moon';
             this.themeToggle.title = 'Switch to dark mode';
+        }
+    }
+
+    // Upload edited document functionality
+    showUploadEditedModal(meetingId) {
+        this.currentMeetingId = meetingId;
+        this.uploadEditedModal.classList.add('show');
+        this.uploadEditedForm.reset();
+        this.comparisonResults.innerHTML = '';
+    }
+
+    async uploadEditedDocument(e) {
+        e.preventDefault();
+
+        try {
+            const fileInput = this.editedFileInput;
+            if (!fileInput.files || fileInput.files.length === 0) {
+                this.showToast('Please select a file to upload', 'error');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (!file.name.toLowerCase().endsWith('.docx')) {
+                this.showToast('Please upload a DOCX file', 'error');
+                return;
+            }
+
+            this.showLoading('Uploading and analyzing document...');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${this.apiBaseUrl}/api/documents/upload-edited/${this.currentMeetingId}`, {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showToast('Document uploaded and preferences learned successfully!', 'success');
+                this.displayComparisonSummary(result.data.comparison_summary);
+                this.loadRecentMeetings(); // Refresh the meetings list
+
+                // Auto-close modal after 3 seconds
+                setTimeout(() => {
+                    this.uploadEditedModal.classList.remove('show');
+                }, 3000);
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error) {
+            console.error('Upload edited document error:', error);
+            this.showToast(error.message || 'Failed to upload document', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    displayComparisonSummary(summary) {
+        this.comparisonResults.innerHTML = `
+            <div class="comparison-summary">
+                <h4><i class="fas fa-chart-line"></i> Analysis Results</h4>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">${summary.preferences_learned}</span>
+                        <span class="stat-label">Preferences Learned</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${Math.round(summary.confidence_score * 100)}%</span>
+                        <span class="stat-label">Confidence Score</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${summary.content_changes}</span>
+                        <span class="stat-label">Content Changes</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${summary.formatting_changes}</span>
+                        <span class="stat-label">Format Changes</span>
+                    </div>
+                </div>
+                <p class="summary-message">
+                    <i class="fas fa-info-circle"></i>
+                    Your preferences have been learned and will be applied to future documents automatically.
+                </p>
+            </div>
+        `;
+    }
+
+    async downloadPersonalized(meetingId) {
+        try {
+            this.showLoading('Generating personalized document...');
+
+            // First apply preferences
+            const applyResponse = await fetch(`${this.apiBaseUrl}/api/documents/apply-preferences/${meetingId}`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            const applyResult = await applyResponse.json();
+
+            if (applyResult.success && applyResult.data.personalized_document_available) {
+                // Download the personalized document
+                window.open(`${this.apiBaseUrl}/api/documents/download-personalized/${meetingId}`, '_blank');
+                this.showToast('Personalized document downloaded successfully', 'success');
+            } else {
+                // Fall back to regular download
+                window.open(`${this.apiBaseUrl}/api/meetings/${meetingId}/download`, '_blank');
+                this.showToast('Downloaded original document (no personalization available)', 'info');
+            }
+        } catch (error) {
+            console.error('Download personalized error:', error);
+            this.showToast('Failed to download personalized document', 'error');
+        } finally {
+            this.hideLoading();
         }
     }
 

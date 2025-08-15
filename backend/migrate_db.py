@@ -56,6 +56,22 @@ def migrate_database():
             print("Adding 'batch_job_id' column to meetings table...")
             cursor.execute("ALTER TABLE meetings ADD COLUMN batch_job_id VARCHAR(36)")
             migrations_applied.append("Added 'batch_job_id' column to meetings table")
+
+        # Check and add document comparison columns to meetings table
+        if not check_column_exists(cursor, 'meetings', 'edited_document_path'):
+            print("Adding 'edited_document_path' column to meetings table...")
+            cursor.execute("ALTER TABLE meetings ADD COLUMN edited_document_path VARCHAR(500)")
+            migrations_applied.append("Added 'edited_document_path' column to meetings table")
+
+        if not check_column_exists(cursor, 'meetings', 'comparison_data'):
+            print("Adding 'comparison_data' column to meetings table...")
+            cursor.execute("ALTER TABLE meetings ADD COLUMN comparison_data TEXT")
+            migrations_applied.append("Added 'comparison_data' column to meetings table")
+
+        if not check_column_exists(cursor, 'meetings', 'preferences_learned'):
+            print("Adding 'preferences_learned' column to meetings table...")
+            cursor.execute("ALTER TABLE meetings ADD COLUMN preferences_learned BOOLEAN DEFAULT 0")
+            migrations_applied.append("Added 'preferences_learned' column to meetings table")
         
         # Create batch_jobs table if it doesn't exist
         cursor.execute("""
@@ -146,6 +162,26 @@ def migrate_database():
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='calendar_events'")
         if cursor.fetchone():
             migrations_applied.append("Created calendar_events table")
+
+        # Create user_preferences table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                id VARCHAR(36) PRIMARY KEY,
+                user_id VARCHAR(36) NOT NULL,
+                preference_key VARCHAR(100) NOT NULL,
+                preference_value TEXT NOT NULL,
+                confidence_score REAL DEFAULT 0.5 NOT NULL,
+                category VARCHAR(50) DEFAULT 'general' NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+
+        # Check if user_preferences table was created
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_preferences'")
+        if cursor.fetchone():
+            migrations_applied.append("Created user_preferences table")
         
         # Commit all changes
         conn.commit()

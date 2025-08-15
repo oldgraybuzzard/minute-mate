@@ -45,6 +45,7 @@ try:
     from batch_service import batch_processor
     from batch_routes import batch_bp
     from profile_routes import profile_bp
+    from document_comparison_routes import doc_comparison_bp
     AUTH_AVAILABLE = True
 except ImportError as e:
     print(f"Authentication modules not available: {e}")
@@ -113,6 +114,9 @@ def create_app():
 
         # Register profile blueprint
         app.register_blueprint(profile_bp)
+
+        # Register document comparison blueprint
+        app.register_blueprint(doc_comparison_bp)
 
         # Create database tables
         with app.app_context():

@@ -42,6 +42,7 @@ class User(UserMixin, db.Model):
     # Relationships
     meetings = db.relationship('Meeting', backref='user', lazy=True, cascade='all, delete-orphan')
     templates = db.relationship('MeetingTemplate', backref='user', lazy=True, cascade='all, delete-orphan')
+    user_preferences = db.relationship('UserPreference', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
         """Set password hash using compatible method"""
@@ -106,6 +107,38 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
 
+class UserPreference(db.Model):
+    """User preferences learned from document edits and manual settings"""
+    __tablename__ = 'user_preferences'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    preference_key = db.Column(db.String(100), nullable=False)
+    preference_value = db.Column(db.Text, nullable=False)
+    confidence_score = db.Column(db.Float, default=0.5, nullable=False)
+    category = db.Column(db.String(50), default='general', nullable=False)
+
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                          onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    def to_dict(self):
+        """Convert preference to dictionary"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'preference_key': self.preference_key,
+            'preference_value': self.preference_value,
+            'confidence_score': self.confidence_score,
+            'category': self.category,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+
+    def __repr__(self):
+        return f'<UserPreference {self.preference_key}>'
+
+
 class Meeting(db.Model):
     """Meeting model for storing meeting information and results"""
     
@@ -142,6 +175,11 @@ class Meeting(db.Model):
     docx_file_path = db.Column(db.String(500))
     html_file_path = db.Column(db.String(500))
     json_file_path = db.Column(db.String(500))
+
+    # Document comparison fields
+    edited_document_path = db.Column(db.String(500))
+    comparison_data = db.Column(db.Text)  # JSON string of comparison results
+    preferences_learned = db.Column(db.Boolean, default=False)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
