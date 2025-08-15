@@ -30,3 +30,8 @@ spacy==3.7.2
 python-dotenv==1.0.0
 requests==2.31.0
 psutil==5.9.6
+
+# Security and performance
+redis==4.6.0
+email-validator==2.0.0
+bleach==6.0.0

@@ -46,6 +46,35 @@ try:
     from batch_routes import batch_bp
     from profile_routes import profile_bp
     from document_comparison_routes import doc_comparison_bp
+    # Try to import technical improvements (graceful fallback if not available)
+    try:
+        from security_middleware import init_security, create_redis_client
+        SECURITY_AVAILABLE = True
+    except ImportError as e:
+        print(f"Security middleware not available: {e}")
+        SECURITY_AVAILABLE = False
+
+    try:
+        from performance_optimizer import init_performance_optimization, setup_database_optimizations
+        PERFORMANCE_AVAILABLE = True
+    except ImportError as e:
+        print(f"Performance optimizer not available: {e}")
+        PERFORMANCE_AVAILABLE = False
+
+    try:
+        from database_optimizer import optimize_database, get_database_health
+        DATABASE_OPTIMIZER_AVAILABLE = True
+    except ImportError as e:
+        print(f"Database optimizer not available: {e}")
+        DATABASE_OPTIMIZER_AVAILABLE = False
+
+    try:
+        from api_documentation import add_documentation_endpoints
+        DOCS_AVAILABLE = True
+    except ImportError as e:
+        print(f"API documentation not available: {e}")
+        DOCS_AVAILABLE = False
+
     AUTH_AVAILABLE = True
 except ImportError as e:
     print(f"Authentication modules not available: {e}")
@@ -118,10 +147,43 @@ def create_app():
         # Register document comparison blueprint
         app.register_blueprint(doc_comparison_bp)
 
+        # Initialize technical improvements if available
+        if SECURITY_AVAILABLE:
+            try:
+                redis_client = create_redis_client()
+                init_security(app)
+                app.logger.info("Security middleware initialized")
+            except Exception as e:
+                app.logger.warning(f"Security middleware initialization failed: {e}")
+
+        if PERFORMANCE_AVAILABLE:
+            try:
+                redis_client = redis_client if SECURITY_AVAILABLE else None
+                init_performance_optimization(app, redis_client)
+                app.logger.info("Performance optimization initialized")
+            except Exception as e:
+                app.logger.warning(f"Performance optimization initialization failed: {e}")
+
         # Create database tables
         with app.app_context():
             try:
                 db.create_all()
+
+                # Set up database optimizations if available
+                if PERFORMANCE_AVAILABLE:
+                    try:
+                        setup_database_optimizations(db)
+                        app.logger.info("Database performance optimizations applied")
+                    except Exception as e:
+                        app.logger.warning(f"Database performance optimization failed: {e}")
+
+                if DATABASE_OPTIMIZER_AVAILABLE:
+                    try:
+                        optimize_database(app, db.engine)
+                        app.logger.info("Database optimizer applied")
+                    except Exception as e:
+                        app.logger.warning(f"Database optimizer failed: {e}")
+
                 app.logger.info(f"Database tables created successfully at: {app.config['SQLALCHEMY_DATABASE_URI']}")
             except Exception as e:
                 app.logger.error(f"Database creation failed: {str(e)}")
@@ -130,6 +192,58 @@ def create_app():
         app.logger.info("Authentication system initialized")
     else:
         app.logger.warning("Authentication system not available - running without user accounts")
+
+    # Add basic health check endpoint
+    @app.route('/')
+    def health_check():
+        return jsonify({
+            'status': 'healthy',
+            'service': 'MinuteMate API',
+            'version': '1.0.0',
+            'timestamp': datetime.now().isoformat()
+        })
+
+    # Add comprehensive health check if database optimizer is available
+    if DATABASE_OPTIMIZER_AVAILABLE:
+        @app.route('/api/health')
+        def comprehensive_health_check():
+            try:
+                health_status = {
+                    'status': 'healthy',
+                    'service': 'MinuteMate API',
+                    'version': '1.0.0',
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'checks': {}
+                }
+
+                # Database health check
+                try:
+                    db_health = get_database_health()
+                    health_status['checks']['database'] = db_health
+                except Exception as e:
+                    health_status['checks']['database'] = {
+                        'status': 'unhealthy',
+                        'error': str(e)
+                    }
+                    health_status['status'] = 'degraded'
+
+                return jsonify(health_status)
+
+            except Exception as e:
+                return jsonify({
+                    'status': 'unhealthy',
+                    'service': 'MinuteMate API',
+                    'error': str(e),
+                    'timestamp': datetime.now(timezone.utc).isoformat()
+                }), 500
+
+    # Add API documentation endpoints if available
+    if DOCS_AVAILABLE:
+        try:
+            add_documentation_endpoints(app)
+            app.logger.info("API documentation endpoints added")
+        except Exception as e:
+            app.logger.warning(f"API documentation setup failed: {e}")
 
     # Setup error handling
     error_handler = ErrorHandler(app)
@@ -1158,6 +1272,143 @@ def generate_meeting_minutes_from_transcript(transcript_text, language='auto', f
     }
 
     return meeting_minutes
+
+# Add health check and monitoring endpoints
+def add_monitoring_endpoints(app):
+    """Add monitoring and health check endpoints"""
+
+    @app.route('/')
+    def health_check():
+        return jsonify({
+            'status': 'healthy',
+            'service': 'MinuteMate API',
+            'version': '1.0.0',
+            'timestamp': datetime.now().isoformat()
+        })
+
+    @app.route('/api/health')
+    def comprehensive_health_check():
+        try:
+            health_status = {
+                'status': 'healthy',
+                'service': 'MinuteMate API',
+                'version': '1.0.0',
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'checks': {}
+            }
+
+            # Database health check
+            try:
+                db_health = get_database_health()
+                health_status['checks']['database'] = db_health
+            except Exception as e:
+                health_status['checks']['database'] = {
+                    'status': 'unhealthy',
+                    'error': str(e)
+                }
+                health_status['status'] = 'degraded'
+
+            # Redis health check (if available)
+            try:
+                redis_client = create_redis_client()
+                if redis_client:
+                    redis_client.ping()
+                    health_status['checks']['redis'] = {'status': 'healthy'}
+                else:
+                    health_status['checks']['redis'] = {'status': 'not_configured'}
+            except Exception as e:
+                health_status['checks']['redis'] = {
+                    'status': 'unhealthy',
+                    'error': str(e)
+                }
+                health_status['status'] = 'degraded'
+
+            # File system health check
+            try:
+                import os
+                upload_dir = app.config.get('UPLOAD_FOLDER', '../uploads')
+                output_dir = app.config.get('OUTPUT_FOLDER', '../output')
+
+                fs_status = {
+                    'upload_dir_writable': os.access(upload_dir, os.W_OK) if os.path.exists(upload_dir) else False,
+                    'output_dir_writable': os.access(output_dir, os.W_OK) if os.path.exists(output_dir) else False
+                }
+
+                if fs_status['upload_dir_writable'] and fs_status['output_dir_writable']:
+                    health_status['checks']['filesystem'] = {
+                        'status': 'healthy',
+                        **fs_status
+                    }
+                else:
+                    health_status['checks']['filesystem'] = {
+                        'status': 'unhealthy',
+                        **fs_status
+                    }
+                    health_status['status'] = 'degraded'
+
+            except Exception as e:
+                health_status['checks']['filesystem'] = {
+                    'status': 'unhealthy',
+                    'error': str(e)
+                }
+                health_status['status'] = 'degraded'
+
+            # AI service health check
+            try:
+                openai_key = app.config.get('OPENAI_API_KEY')
+                if openai_key and openai_key != 'your-openai-api-key-here':
+                    health_status['checks']['ai_service'] = {'status': 'configured'}
+                else:
+                    health_status['checks']['ai_service'] = {'status': 'not_configured'}
+            except Exception as e:
+                health_status['checks']['ai_service'] = {
+                    'status': 'error',
+                    'error': str(e)
+                }
+
+            return jsonify(health_status)
+
+        except Exception as e:
+            return jsonify({
+                'status': 'unhealthy',
+                'service': 'MinuteMate API',
+                'error': str(e),
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }), 500
+
+    @app.route('/api/admin/system-info')
+    def system_info():
+        """Get system information and metrics"""
+        try:
+            import psutil
+            import platform
+
+            # System information
+            system_info = {
+                'platform': platform.platform(),
+                'python_version': platform.python_version(),
+                'cpu_count': psutil.cpu_count(),
+                'memory_total': psutil.virtual_memory().total,
+                'memory_available': psutil.virtual_memory().available,
+                'memory_percent': psutil.virtual_memory().percent,
+                'disk_usage': {
+                    'total': psutil.disk_usage('/').total,
+                    'used': psutil.disk_usage('/').used,
+                    'free': psutil.disk_usage('/').free,
+                    'percent': psutil.disk_usage('/').percent
+                }
+            }
+
+            return jsonify({
+                'success': True,
+                'data': system_info
+            })
+
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
 
 # Error handlers are now managed by the ErrorHandler class
 
