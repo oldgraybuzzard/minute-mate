@@ -227,3 +227,124 @@ class MeetingTemplate(db.Model):
     
     def __repr__(self):
         return f'<MeetingTemplate {self.name}>'
+
+
+class CalendarIntegration(db.Model):
+    """Calendar integration model for storing user calendar connections"""
+
+    __tablename__ = 'calendar_integrations'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+
+    # Provider information
+    provider = db.Column(db.String(50), nullable=False)  # google, outlook, apple, etc.
+    provider_user_id = db.Column(db.String(255))  # User ID from the provider
+    provider_email = db.Column(db.String(255))  # Email associated with the calendar
+
+    # OAuth tokens
+    access_token = db.Column(db.Text)  # Encrypted access token
+    refresh_token = db.Column(db.Text)  # Encrypted refresh token
+    token_expires_at = db.Column(db.DateTime)
+
+    # Integration settings
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    sync_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    auto_import_events = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Sync information
+    last_sync_at = db.Column(db.DateTime)
+    sync_status = db.Column(db.String(50), default='connected')  # connected, error, expired
+    sync_error_message = db.Column(db.Text)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                          onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    user = db.relationship('User', backref='calendar_integrations')
+
+    def to_dict(self):
+        """Convert calendar integration to dictionary (excluding sensitive data)"""
+        return {
+            'id': self.id,
+            'provider': self.provider,
+            'provider_email': self.provider_email,
+            'is_active': self.is_active,
+            'sync_enabled': self.sync_enabled,
+            'auto_import_events': self.auto_import_events,
+            'last_sync_at': self.last_sync_at.isoformat() if self.last_sync_at else None,
+            'sync_status': self.sync_status,
+            'sync_error_message': self.sync_error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def __repr__(self):
+        return f'<CalendarIntegration {self.provider} - {self.provider_email}>'
+
+
+class CalendarEvent(db.Model):
+    """Calendar event model for storing imported calendar events"""
+
+    __tablename__ = 'calendar_events'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    integration_id = db.Column(db.String(36), db.ForeignKey('calendar_integrations.id'), nullable=False)
+
+    # Event information
+    title = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    location = db.Column(db.String(500))
+    attendees = db.Column(db.JSON)  # List of attendee emails
+
+    # Provider information
+    provider_event_id = db.Column(db.String(255), nullable=False)
+    provider_url = db.Column(db.String(1000))  # Link to event in provider's calendar
+
+    # Meeting association
+    meeting_id = db.Column(db.String(36), db.ForeignKey('meetings.id'))  # Associated meeting if any
+
+    # Event status
+    is_imported = db.Column(db.Boolean, default=True, nullable=False)
+    is_processed = db.Column(db.Boolean, default=False, nullable=False)  # Has been processed for minutes
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                          onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    provider_created_at = db.Column(db.DateTime)
+    provider_updated_at = db.Column(db.DateTime)
+
+    # Relationships
+    user = db.relationship('User', backref='calendar_events')
+    integration = db.relationship('CalendarIntegration', backref='events')
+    meeting = db.relationship('Meeting', backref='calendar_event', uselist=False)
+
+    def to_dict(self):
+        """Convert calendar event to dictionary"""
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'location': self.location,
+            'attendees': self.attendees,
+            'provider_event_id': self.provider_event_id,
+            'provider_url': self.provider_url,
+            'meeting_id': self.meeting_id,
+            'is_imported': self.is_imported,
+            'is_processed': self.is_processed,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'provider_created_at': self.provider_created_at.isoformat() if self.provider_created_at else None,
+            'provider_updated_at': self.provider_updated_at.isoformat() if self.provider_updated_at else None
+        }
+
+    def __repr__(self):
+        return f'<CalendarEvent {self.title}>'

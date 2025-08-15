@@ -2668,6 +2668,568 @@ body {
     }
 }
 
+/* Calendar Page Styles */
+.calendar-container {
+    min-height: 100vh;
+    background: var(--background-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-main {
+    flex: 1;
+    padding: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.calendar-title h2 {
+    color: var(--gray-800);
+    margin: 0 0 10px 0;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.calendar-title p {
+    color: var(--gray-600);
+    margin: 0;
+    font-size: 1rem;
+}
+
+.calendar-actions {
+    display: flex;
+    gap: 15px;
+}
+
+/* Status Messages */
+.status-message {
+    margin-bottom: 30px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.status-message.success {
+    background: var(--success-light);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+.status-message.error {
+    background: var(--danger-light);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+}
+
+.status-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Calendar Sections */
+.calendar-section {
+    margin-bottom: 40px;
+}
+
+.calendar-section h3 {
+    color: var(--gray-800);
+    margin: 0 0 20px 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+/* Integrations Grid */
+.integrations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.integration-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.integration-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
+}
+
+.integration-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.integration-provider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 1.1rem;
+}
+
+.integration-provider i {
+    font-size: 1.3rem;
+    color: var(--primary-color);
+}
+
+.integration-email {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-connected {
+    background: var(--success-light);
+    color: var(--success-color);
+}
+
+.status-error {
+    background: var(--danger-light);
+    color: var(--danger-color);
+}
+
+.status-expired {
+    background: var(--warning-light);
+    color: var(--warning-color);
+}
+
+.integration-meta {
+    margin-bottom: 15px;
+}
+
+.meta-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.meta-item strong {
+    color: var(--gray-700);
+}
+
+.meta-item span {
+    color: var(--gray-600);
+}
+
+.error-message {
+    background: var(--danger-light);
+    color: var(--danger-color);
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.integration-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Events List */
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.event-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.event-card.unprocessed {
+    border-left: 4px solid var(--warning-color);
+}
+
+.event-time {
+    min-width: 120px;
+    text-align: center;
+}
+
+.event-date {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 0.9rem;
+}
+
+.event-time-range {
+    color: var(--gray-600);
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+.event-details {
+    flex: 1;
+}
+
+.event-details h4 {
+    margin: 0 0 8px 0;
+    color: var(--gray-800);
+    font-size: 1.1rem;
+}
+
+.event-location,
+.event-description,
+.event-status {
+    margin: 5px 0;
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.event-status {
+    color: var(--warning-color);
+    font-weight: 500;
+}
+
+.event-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Connect Modal */
+.connect-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.connect-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.connect-modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.connect-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.connect-modal-header h3 {
+    margin: 0;
+    color: var(--gray-800);
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.connect-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.connect-modal-close:hover {
+    color: var(--gray-700);
+    background: var(--gray-200);
+}
+
+.connect-modal-body {
+    padding: 25px;
+}
+
+.providers-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.provider-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.provider-card:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.provider-icon {
+    font-size: 2rem;
+    width: 50px;
+    text-align: center;
+}
+
+.provider-info h4 {
+    margin: 0 0 5px 0;
+    color: var(--gray-800);
+}
+
+.provider-info p {
+    margin: 0;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+/* Follow-up Modal */
+.followup-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.followup-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.followup-modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+.followup-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.followup-modal-header h3 {
+    margin: 0;
+    color: var(--gray-800);
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.followup-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.followup-modal-close:hover {
+    color: var(--gray-700);
+    background: var(--gray-200);
+}
+
+.followup-modal-body {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+}
+
+.followup-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 25px;
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+/* Dark mode for calendar */
+[data-theme="dark"] .calendar-container {
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .calendar-title h2 {
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .calendar-section h3 {
+    color: var(--gray-900);
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .integration-card,
+[data-theme="dark"] .event-card {
+    background: var(--gray-100);
+}
+
+[data-theme="dark"] .integration-provider {
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .event-details h4 {
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .connect-modal-content,
+[data-theme="dark"] .followup-modal-content {
+    background: var(--gray-100);
+}
+
+[data-theme="dark"] .connect-modal-header,
+[data-theme="dark"] .followup-modal-header,
+[data-theme="dark"] .followup-modal-footer {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .connect-modal-header h3,
+[data-theme="dark"] .followup-modal-header h3 {
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .provider-card {
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .provider-info h4 {
+    color: var(--gray-900);
+}
+
+/* Responsive design for calendar */
+@media (max-width: 1024px) {
+    .integrations-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .calendar-main {
+        padding: 20px 15px;
+    }
+
+    .calendar-header {
+        flex-direction: column;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    .calendar-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .integrations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .event-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .event-time {
+        min-width: auto;
+        text-align: left;
+    }
+
+    .event-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .connect-modal-content,
+    .followup-modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+}
+
 /* Templates Page Styles */
 .templates-container {
     min-height: 100vh;

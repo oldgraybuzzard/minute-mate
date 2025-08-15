@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinuteMate - Calendar Integration</title>
+    <link rel="preload" href="images/logo.png" as="image">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="calendar-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="images/logo.png" alt="MinuteMate Logo" class="logo-image">
+                    <h1>MinuteMate</h1>
+                </div>
+                <div class="header-controls">
+                    <div class="user-menu">
+                        <button class="user-menu-toggle" id="user-menu-toggle">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="user-name">Loading...</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <div class="user-info">
+                                <strong id="user-full-name">Loading...</strong>
+                                <small id="user-email">Loading...</small>
+                            </div>
+                            <hr>
+                            <a href="/frontend/" class="dropdown-item">
+                                <i class="fas fa-plus"></i> New Meeting
+                            </a>
+                            <a href="/frontend/dashboard.html" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                            <a href="/frontend/templates.html" class="dropdown-item">
+                                <i class="fas fa-file-alt"></i> Templates
+                            </a>
+                            <hr>
+                            <a href="#" class="dropdown-item" id="user-logout">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="calendar-main">
+            <!-- Calendar Header -->
+            <div class="calendar-header">
+                <div class="calendar-title">
+                    <h2><i class="fas fa-calendar-alt"></i> Calendar Integration</h2>
+                    <p>Connect your calendars to sync meetings and create follow-up events</p>
+                </div>
+                <div class="calendar-actions">
+                    <button class="btn secondary" id="sync-all-btn">
+                        <i class="fas fa-sync-alt"></i> Sync All
+                    </button>
+                    <button class="btn primary" id="connect-calendar-btn">
+                        <i class="fas fa-plus"></i> Connect Calendar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div class="status-message" id="status-message" style="display: none;">
+                <div class="status-content">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="status-text"></span>
+                </div>
+            </div>
+
+            <!-- Connected Calendars -->
+            <div class="calendar-section">
+                <h3><i class="fas fa-link"></i> Connected Calendars</h3>
+                <div class="integrations-grid" id="integrations-grid">
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading calendar integrations...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Events -->
+            <div class="calendar-section">
+                <h3><i class="fas fa-clock"></i> Upcoming Events</h3>
+                <div class="events-list" id="upcoming-events">
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading upcoming events...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unprocessed Events -->
+            <div class="calendar-section">
+                <h3><i class="fas fa-exclamation-triangle"></i> Events Needing Minutes</h3>
+                <div class="events-list" id="unprocessed-events">
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading unprocessed events...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Connect Calendar Modal -->
+        <div class="connect-modal" id="connect-modal">
+            <div class="connect-modal-content">
+                <div class="connect-modal-header">
+                    <h3><i class="fas fa-calendar-plus"></i> Connect Calendar</h3>
+                    <button class="connect-modal-close">&times;</button>
+                </div>
+                <div class="connect-modal-body">
+                    <p>Choose a calendar provider to connect:</p>
+                    <div class="providers-grid" id="providers-grid">
+                        <!-- Providers will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Follow-up Event Modal -->
+        <div class="followup-modal" id="followup-modal">
+            <div class="followup-modal-content">
+                <div class="followup-modal-header">
+                    <h3><i class="fas fa-calendar-plus"></i> Create Follow-up Event</h3>
+                    <button class="followup-modal-close">&times;</button>
+                </div>
+                <div class="followup-modal-body">
+                    <form id="followup-form">
+                        <div class="form-group">
+                            <label for="followup-title">Event Title *</label>
+                            <input type="text" id="followup-title" name="title" required 
+                                   placeholder="e.g., Follow-up on Action Items">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="followup-description">Description</label>
+                            <textarea id="followup-description" name="description" rows="3"
+                                      placeholder="Event description and agenda"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="followup-start">Start Date & Time *</label>
+                                <input type="datetime-local" id="followup-start" name="start_time" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="followup-end">End Date & Time *</label>
+                                <input type="datetime-local" id="followup-end" name="end_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="followup-location">Location</label>
+                            <input type="text" id="followup-location" name="location" 
+                                   placeholder="Meeting location or video link">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="followup-attendees">Attendees (comma-separated emails)</label>
+                            <input type="text" id="followup-attendees" name="attendees" 
+                                   placeholder="email1@example.com, email2@example.com">
+                        </div>
+                        
+                        <input type="hidden" id="followup-meeting-id" name="meeting_id">
+                    </form>
+                </div>
+                <div class="followup-modal-footer">
+                    <button type="button" class="btn secondary" id="cancel-followup">Cancel</button>
+                    <button type="submit" form="followup-form" class="btn primary" id="create-followup">
+                        <i class="fas fa-calendar-plus"></i> Create Event
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="confirmation-modal" id="confirmation-modal">
+            <div class="confirmation-modal-content">
+                <div class="confirmation-modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Confirm Action</h3>
+                </div>
+                <div class="confirmation-modal-body">
+                    <p id="confirmation-message">Are you sure you want to perform this action?</p>
+                </div>
+                <div class="confirmation-modal-footer">
+                    <button class="btn secondary" id="cancel-confirmation">Cancel</button>
+                    <button class="btn danger" id="confirm-action">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast">
+            <div class="toast-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="toast-message">Message</div>
+            <button class="toast-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="calendar.js"></script>
+</body>
+</html>

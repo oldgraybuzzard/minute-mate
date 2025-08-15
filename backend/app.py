@@ -40,6 +40,8 @@ try:
     from meeting_routes import meeting_bp
     from template_service import TemplateService
     from template_routes import template_bp
+    from calendar_service import CalendarService
+    from calendar_routes import calendar_bp
     AUTH_AVAILABLE = True
 except ImportError as e:
     print(f"Authentication modules not available: {e}")
@@ -99,6 +101,9 @@ def create_app():
 
         # Register template blueprint
         app.register_blueprint(template_bp)
+
+        # Register calendar blueprint
+        app.register_blueprint(calendar_bp)
 
         # Create database tables
         with app.app_context():
