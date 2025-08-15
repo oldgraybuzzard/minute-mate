@@ -50,13 +50,29 @@ class AIProcessor:
                 logger.warning("Invalid OpenAI API key format. AI processing will be disabled.")
                 return
             
-            # Initialize OpenAI client with minimal configuration
-            self.client = OpenAI(
-                api_key=api_key,
-                timeout=60.0,
-                max_retries=3
-            )
-            logger.info("OpenAI client initialized successfully")
+            # Initialize OpenAI client - handle different versions gracefully
+            logger.info(f"Attempting to initialize OpenAI client...")
+
+            # Try different initialization methods for compatibility
+            client_kwargs = {'api_key': api_key}
+
+            try:
+                # Try with timeout and max_retries (newer versions)
+                self.client = OpenAI(
+                    api_key=api_key,
+                    timeout=60.0,
+                    max_retries=3
+                )
+                logger.info("OpenAI client initialized with full configuration")
+            except TypeError:
+                try:
+                    # Fallback: just API key (older versions)
+                    self.client = OpenAI(api_key=api_key)
+                    logger.info("OpenAI client initialized with basic configuration")
+                except Exception as fallback_error:
+                    logger.error(f"All OpenAI initialization methods failed: {fallback_error}")
+                    self.client = None
+                    return
             
         except Exception as e:
             logger.error(f"Failed to initialize OpenAI client: {str(e)}")

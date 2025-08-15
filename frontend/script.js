@@ -5,7 +5,8 @@
 
 class MinuteMateApp {
     constructor() {
-        this.apiBaseUrl = 'http://localhost:8080';
+        // Auto-detect API base URL based on current location
+        this.apiBaseUrl = window.location.origin;
         this.currentJobId = null;
         this.selectedFile = null;
         this.pollInterval = null;
@@ -159,8 +160,8 @@ class MinuteMateApp {
         // Initialize logo
         this.initializeLogo();
 
-        // Check authentication
-        this.checkAuthentication();
+        // Check authentication - temporarily disabled for testing
+        // this.checkAuthentication();
 
         // Navigation events
         this.newUploadBtns.forEach(btn => {

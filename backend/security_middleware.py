@@ -261,7 +261,14 @@ class SecurityMiddleware:
                 'default': (500, 3600)  # 500 requests per hour for other endpoints
             }
             
-            limit, window = rate_limits.get(endpoint, rate_limits['default'])
+            # Special handling for frontend routes
+            if request.path.startswith('/frontend'):
+                if request.path.endswith(('.css', '.js', '.png', '.jpg', '.ico')):
+                    limit, window = rate_limits['serve_frontend_files']
+                else:
+                    limit, window = rate_limits['serve_frontend']
+            else:
+                limit, window = rate_limits.get(endpoint, rate_limits['default'])
             
             # Create rate limit key
             user_id = getattr(g, 'current_user_id', None) if hasattr(g, 'current_user_id') else None
@@ -275,7 +282,7 @@ class SecurityMiddleware:
             g.rate_limit_info = info
             
             if not allowed:
-                logger.warning(f"Rate limit exceeded for {key}: {info}")
+                logger.warning(f"Rate limit exceeded for {request.remote_addr} on endpoint '{endpoint}' (key: {key})")
                 return jsonify({
                     'success': False,
                     'error': {

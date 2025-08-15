@@ -390,7 +390,7 @@
             statusIcon.className = 'fas fa-spinner fa-spin';
             
             try {
-                const response = await fetch('http://localhost:8080/');
+                const response = await fetch(window.location.origin + '/');
                 if (response.ok) {
                     statusEl.className = 'status-indicator online';
                     statusIcon.className = 'fas fa-circle';
@@ -406,7 +406,7 @@
         }
         
         function showApiDocs() {
-            alert('API Documentation:\n\nMain endpoints:\n• POST /api/upload - Upload files\n• GET /api/status/{job_id} - Check status\n• GET /api/download/{job_id} - Download results\n• GET /api/health/detailed - System health\n\nFor full documentation, visit the API at http://localhost:8080/');
+            alert('API Documentation:\n\nMain endpoints:\n• POST /api/upload - Upload files\n• GET /api/status/{job_id} - Check status\n• GET /api/download/{job_id} - Download results\n• GET /api/health/detailed - System health\n\nFor full documentation, visit the API at ' + window.location.origin + '/');
         }
         
         // Check system status on page load
