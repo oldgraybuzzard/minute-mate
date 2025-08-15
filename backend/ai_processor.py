@@ -50,7 +50,12 @@ class AIProcessor:
                 logger.warning("Invalid OpenAI API key format. AI processing will be disabled.")
                 return
             
-            self.client = OpenAI(api_key=api_key)
+            # Initialize OpenAI client with minimal configuration
+            self.client = OpenAI(
+                api_key=api_key,
+                timeout=60.0,
+                max_retries=3
+            )
             logger.info("OpenAI client initialized successfully")
             
         except Exception as e:

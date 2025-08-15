@@ -306,17 +306,17 @@ def setup_database_monitoring(engine):
                 'error': str(exception_context.original_exception),
                 'statement': getattr(exception_context, 'statement', None)
             })
+
+            # Record failed query
+            if hasattr(exception_context, 'statement'):
+                db_monitor.record_query(
+                    exception_context.statement,
+                    0,  # Duration unknown for failed queries
+                    success=False
+                )
     except Exception as e:
         logger.warning(f"Could not add dbapi_error listener (database may not support it): {e}")
-        
-        # Record failed query
-        if hasattr(exception_context, 'statement'):
-            db_monitor.record_query(
-                exception_context.statement,
-                0,  # Duration unknown for failed queries
-                success=False
-            )
-    
+
     logger.info("Database monitoring events registered")
 
 @contextmanager
