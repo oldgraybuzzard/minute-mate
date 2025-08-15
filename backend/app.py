@@ -38,6 +38,8 @@ try:
     from auth_routes import auth_bp
     from meeting_service import MeetingService
     from meeting_routes import meeting_bp
+    from template_service import TemplateService
+    from template_routes import template_bp
     AUTH_AVAILABLE = True
 except ImportError as e:
     print(f"Authentication modules not available: {e}")
@@ -94,6 +96,9 @@ def create_app():
 
         # Register meeting blueprint
         app.register_blueprint(meeting_bp)
+
+        # Register template blueprint
+        app.register_blueprint(template_bp)
 
         # Create database tables
         with app.app_context():

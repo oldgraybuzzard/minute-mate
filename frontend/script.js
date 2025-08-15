@@ -1307,6 +1307,9 @@ class MinuteMateApp {
                         <a href="/frontend/dashboard.html" class="dropdown-item">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
+                        <a href="/frontend/templates.html" class="dropdown-item">
+                            <i class="fas fa-file-alt"></i> Templates
+                        </a>
                         <a href="#" class="dropdown-item" id="user-profile">
                             <i class="fas fa-user"></i> Profile
                         </a>

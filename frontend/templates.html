@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinuteMate - Meeting Templates</title>
+    <link rel="preload" href="images/logo.png" as="image">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="templates-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="images/logo.png" alt="MinuteMate Logo" class="logo-image">
+                    <h1>MinuteMate</h1>
+                </div>
+                <div class="header-controls">
+                    <div class="user-menu">
+                        <button class="user-menu-toggle" id="user-menu-toggle">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="user-name">Loading...</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <div class="user-info">
+                                <strong id="user-full-name">Loading...</strong>
+                                <small id="user-email">Loading...</small>
+                            </div>
+                            <hr>
+                            <a href="/frontend/" class="dropdown-item">
+                                <i class="fas fa-plus"></i> New Meeting
+                            </a>
+                            <a href="/frontend/dashboard.html" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                            <a href="#" class="dropdown-item" id="user-profile">
+                                <i class="fas fa-user"></i> Profile
+                            </a>
+                            <hr>
+                            <a href="#" class="dropdown-item" id="user-logout">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="templates-main">
+            <!-- Templates Header -->
+            <div class="templates-header">
+                <div class="templates-title">
+                    <h2><i class="fas fa-file-alt"></i> Meeting Templates</h2>
+                    <p>Create and manage customizable templates for different meeting types</p>
+                </div>
+                <div class="templates-actions">
+                    <button class="btn secondary" id="create-defaults-btn">
+                        <i class="fas fa-magic"></i> Create Defaults
+                    </button>
+                    <button class="btn primary" id="create-template-btn">
+                        <i class="fas fa-plus"></i> New Template
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="templates-filters">
+                <div class="filter-group">
+                    <label for="category-filter">Category:</label>
+                    <select id="category-filter">
+                        <option value="all">All Categories</option>
+                        <option value="board">Board Meeting</option>
+                        <option value="governance">Governance & Parliamentary</option>
+                        <option value="team">Team Meeting</option>
+                        <option value="project">Project Meeting</option>
+                        <option value="client">Client Meeting</option>
+                        <option value="general">General</option>
+                        <option value="training">Training</option>
+                        <option value="interview">Interview</option>
+                        <option value="sales">Sales</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>
+                        <input type="checkbox" id="include-public" checked>
+                        Include public templates
+                    </label>
+                </div>
+            </div>
+
+            <!-- Templates Grid -->
+            <div class="templates-grid" id="templates-grid">
+                <div class="loading-placeholder">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading templates...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Template Modal -->
+        <div class="template-modal" id="template-modal">
+            <div class="template-modal-content">
+                <div class="template-modal-header">
+                    <h3 id="modal-title"><i class="fas fa-file-alt"></i> Create Template</h3>
+                    <button class="template-modal-close">&times;</button>
+                </div>
+                <div class="template-modal-body">
+                    <form id="template-form">
+                        <!-- Basic Information -->
+                        <div class="form-section">
+                            <h4>Basic Information</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="template-name">Template Name *</label>
+                                    <input type="text" id="template-name" name="name" required 
+                                           placeholder="e.g., Weekly Team Standup">
+                                </div>
+                                <div class="form-group">
+                                    <label for="template-category">Category</label>
+                                    <select id="template-category" name="category">
+                                        <option value="general">General</option>
+                                        <option value="board">Board Meeting</option>
+                                        <option value="governance">Governance & Parliamentary</option>
+                                        <option value="team">Team Meeting</option>
+                                        <option value="project">Project Meeting</option>
+                                        <option value="client">Client Meeting</option>
+                                        <option value="training">Training</option>
+                                        <option value="interview">Interview</option>
+                                        <option value="sales">Sales</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="template-description">Description</label>
+                                <textarea id="template-description" name="description" rows="3"
+                                          placeholder="Describe when and how this template should be used"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="template-public" name="is_public">
+                                    Make this template public (other users can use it)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Sections Configuration -->
+                        <div class="form-section">
+                            <h4>Sections to Include</h4>
+                            <div class="sections-grid" id="sections-grid">
+                                <!-- Sections will be populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Formatting Options -->
+                        <div class="form-section">
+                            <h4>Formatting Options</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="template-style">Style</label>
+                                    <select id="template-style" name="style">
+                                        <option value="professional">Professional</option>
+                                        <option value="formal">Formal</option>
+                                        <option value="casual">Casual</option>
+                                        <option value="academic">Academic</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="template-font">Font Family</label>
+                                    <select id="template-font" name="font_family">
+                                        <option value="Arial">Arial</option>
+                                        <option value="Calibri">Calibri</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Helvetica">Helvetica</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="template-font-size">Font Size</label>
+                                    <select id="template-font-size" name="font_size">
+                                        <option value="10">10pt</option>
+                                        <option value="11" selected>11pt</option>
+                                        <option value="12">12pt</option>
+                                        <option value="14">14pt</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="template-line-spacing">Line Spacing</label>
+                                    <select id="template-line-spacing" name="line_spacing">
+                                        <option value="1.0">Single</option>
+                                        <option value="1.2" selected>1.2</option>
+                                        <option value="1.5">1.5</option>
+                                        <option value="2.0">Double</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="template-modal-footer">
+                    <button type="button" class="btn secondary" id="cancel-template">Cancel</button>
+                    <button type="submit" form="template-form" class="btn primary" id="save-template">
+                        <i class="fas fa-save"></i> Save Template
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="confirmation-modal" id="confirmation-modal">
+            <div class="confirmation-modal-content">
+                <div class="confirmation-modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Confirm Action</h3>
+                </div>
+                <div class="confirmation-modal-body">
+                    <p id="confirmation-message">Are you sure you want to perform this action?</p>
+                </div>
+                <div class="confirmation-modal-footer">
+                    <button class="btn secondary" id="cancel-confirmation">Cancel</button>
+                    <button class="btn danger" id="confirm-action">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast">
+            <div class="toast-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="toast-message">Message</div>
+            <button class="toast-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="templates.js"></script>
+</body>
+</html>

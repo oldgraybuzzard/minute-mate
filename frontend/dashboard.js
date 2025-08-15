@@ -72,7 +72,7 @@ class DashboardApp {
 
         // Quick actions
         document.getElementById('view-templates').addEventListener('click', () => {
-            this.showToast('Templates feature coming soon!', 'info');
+            window.location.href = '/frontend/templates.html';
         });
         
         document.getElementById('export-data').addEventListener('click', () => {
