@@ -94,8 +94,10 @@ FLASK_ENV=production
 
 ### **Common Issues:**
 
-**Build Fails with PyTorch Error:**
-- ✅ **Fixed in v2.0.1** - Updated to PyTorch 2.5.1
+**Build Fails with PyTorch/Triton Dependency Conflicts:**
+- ✅ **Fixed in v2.0.1** - Replaced openai-whisper with faster-whisper
+- ✅ **Updated PyTorch** to version 2.3.1 for better compatibility
+- ✅ **Resolved dependency conflicts** between Triton versions
 - Ensure `requirements.txt` has compatible versions
 - Check Python version is 3.11.9
 

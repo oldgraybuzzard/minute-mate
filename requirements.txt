@@ -16,9 +16,10 @@ python-magic==0.4.27
 
 # AI and transcription
 openai==1.54.3
-openai-whisper==20231117
-torch==2.5.1
-torchaudio==2.5.1
+# Using faster-whisper instead of openai-whisper for better compatibility
+faster-whisper==1.0.3
+torch==2.3.1
+torchaudio==2.3.1
 
 # Document processing
 python-docx==1.1.0

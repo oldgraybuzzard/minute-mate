@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔧 **Deployment Fixes**
 
 #### Fixed
-- **Updated PyTorch dependencies** from 2.1.0 to 2.5.1 for Railway compatibility
+- **Replaced openai-whisper with faster-whisper** to resolve dependency conflicts
+- **Updated PyTorch dependencies** to version 2.3.1 for compatibility
 - **Updated OpenAI library** to version 1.54.3 for latest features
 - **Updated Flask** to version 3.0.3 for security improvements
 - **Added Flask-Migrate** for database migration support
@@ -29,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Added Python version specification** (3.11.9) for consistent deployments
 
 #### Enhanced
+- **Improved transcription performance** with faster-whisper (more efficient than openai-whisper)
+- **Better dependency compatibility** with resolved PyTorch/Triton conflicts
 - **Better Gunicorn configuration** with request limits and jitter
 - **Improved build process** with pip upgrade during installation
 - **Health check endpoint** updated to `/api/health` for better monitoring

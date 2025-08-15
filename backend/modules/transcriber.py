@@ -8,7 +8,12 @@ import logging
 import tempfile
 from typing import Optional, Dict, Any, Callable
 from pathlib import Path
-import whisper
+try:
+    from faster_whisper import WhisperModel
+    WHISPER_AVAILABLE = True
+except ImportError:
+    WHISPER_AVAILABLE = False
+    WhisperModel = None
 import torch
 from pydub import AudioSegment
 
@@ -43,11 +48,16 @@ class AudioTranscriber:
     def __init__(self, model_size: str = "base", device: Optional[str] = None):
         """
         Initialize the transcriber
-        
+
         Args:
             model_size: Whisper model size (tiny, base, small, medium, large)
             device: Device to use (cuda, cpu, or auto-detect)
         """
+        if not WHISPER_AVAILABLE:
+            logger.error("faster-whisper package not available. Transcription will be disabled.")
+            self.model = None
+            return
+
         self.model_size = model_size
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
@@ -55,15 +65,25 @@ class AudioTranscriber:
             'audio': ['.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.wma'],
             'video': ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm']
         }
-        
+
         logger.info(f"AudioTranscriber initialized with model: {model_size}, device: {self.device}")
     
     def _load_model(self) -> None:
         """Load the Whisper model if not already loaded"""
+        if not WHISPER_AVAILABLE:
+            logger.error("faster-whisper not available")
+            return
+
         if self.model is None:
             logger.info(f"Loading Whisper model: {self.model_size}")
             try:
-                self.model = whisper.load_model(self.model_size, device=self.device)
+                # Use faster-whisper which is more efficient and compatible
+                compute_type = "float16" if self.device == "cuda" else "int8"
+                self.model = WhisperModel(
+                    self.model_size,
+                    device=self.device,
+                    compute_type=compute_type
+                )
                 logger.info("Whisper model loaded successfully")
             except Exception as e:
                 logger.error(f"Failed to load Whisper model: {e}")
@@ -172,32 +192,46 @@ class AudioTranscriber:
             if progress_callback:
                 progress_callback(25)
             
-            # Transcribe using Whisper
+            # Transcribe using faster-whisper
             logger.info("Running Whisper transcription...")
-            result = self.model.transcribe(
+            if not WHISPER_AVAILABLE or self.model is None:
+                raise RuntimeError("Whisper model not available")
+
+            segments, info = self.model.transcribe(
                 processed_file,
                 language=language,
-                verbose=False
+                beam_size=5,
+                word_timestamps=True
             )
-            
+
             if progress_callback:
                 progress_callback(90)
-            
-            # Extract results
-            text = result.get('text', '').strip()
-            segments = result.get('segments', [])
-            detected_language = result.get('language', 'unknown')
-            
+
+            # Convert segments to list and extract results
+            segments_list = list(segments)
+            text_parts = []
+            formatted_segments = []
+
+            for segment in segments_list:
+                text_parts.append(segment.text)
+                formatted_segments.append({
+                    'start': segment.start,
+                    'end': segment.end,
+                    'text': segment.text,
+                    'avg_logprob': getattr(segment, 'avg_logprob', 0.0)
+                })
+
+            text = ' '.join(text_parts).strip()
+            detected_language = info.language
+
             # Calculate average confidence if available
             confidence = 0.0
-            if segments:
-                confidences = [seg.get('avg_logprob', 0.0) for seg in segments]
+            if formatted_segments:
+                confidences = [seg.get('avg_logprob', 0.0) for seg in formatted_segments]
                 confidence = sum(confidences) / len(confidences) if confidences else 0.0
-            
+
             # Get audio duration
-            duration = 0.0
-            if segments:
-                duration = max(seg.get('end', 0.0) for seg in segments)
+            duration = info.duration
             
             if progress_callback:
                 progress_callback(100)
@@ -206,7 +240,7 @@ class AudioTranscriber:
             
             return TranscriptionResult(
                 text=text,
-                segments=segments,
+                segments=formatted_segments,
                 language=detected_language,
                 confidence=confidence,
                 duration=duration
