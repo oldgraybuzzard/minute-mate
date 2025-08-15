@@ -159,6 +159,9 @@ class MinuteMateApp {
         // Initialize logo
         this.initializeLogo();
 
+        // Check authentication
+        this.checkAuthentication();
+
         // Navigation events
         this.newUploadBtns.forEach(btn => {
             btn.addEventListener('click', this.resetToUpload.bind(this));
@@ -1250,6 +1253,117 @@ class MinuteMateApp {
                     logoImage.style.transform = 'scale(1)';
                 }, 100);
             });
+        }
+    }
+
+    async checkAuthentication() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/auth/check`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                // User not authenticated, redirect to auth page
+                window.location.href = '/frontend/auth.html';
+                return;
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                // User not authenticated, redirect to auth page
+                window.location.href = '/frontend/auth.html';
+                return;
+            }
+
+            // User is authenticated, store user info
+            this.currentUser = result.data.user;
+            this.updateUIForAuthenticatedUser();
+
+        } catch (error) {
+            console.log('Authentication check failed, redirecting to login');
+            // Redirect to auth page on error
+            window.location.href = '/frontend/auth.html';
+        }
+    }
+
+    updateUIForAuthenticatedUser() {
+        // Add user info to header if authenticated
+        if (this.currentUser) {
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls && !document.querySelector('.user-menu')) {
+                const userMenu = document.createElement('div');
+                userMenu.className = 'user-menu';
+                userMenu.innerHTML = `
+                    <button class="user-menu-toggle" title="User menu">
+                        <i class="fas fa-user-circle"></i>
+                        <span>${this.currentUser.first_name}</span>
+                    </button>
+                    <div class="user-dropdown">
+                        <div class="user-info">
+                            <strong>${this.currentUser.full_name}</strong>
+                            <small>${this.currentUser.email}</small>
+                        </div>
+                        <hr>
+                        <a href="#" class="dropdown-item" id="user-profile">
+                            <i class="fas fa-user"></i> Profile
+                        </a>
+                        <a href="#" class="dropdown-item" id="user-meetings">
+                            <i class="fas fa-history"></i> Meeting History
+                        </a>
+                        <a href="#" class="dropdown-item" id="user-settings">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <hr>
+                        <a href="#" class="dropdown-item" id="user-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                `;
+
+                // Insert before theme toggle
+                headerControls.insertBefore(userMenu, this.themeToggle);
+
+                // Add event listeners
+                this.setupUserMenu(userMenu);
+            }
+        }
+    }
+
+    setupUserMenu(userMenu) {
+        const toggle = userMenu.querySelector('.user-menu-toggle');
+        const dropdown = userMenu.querySelector('.user-dropdown');
+
+        toggle.addEventListener('click', () => {
+            dropdown.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!userMenu.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Logout functionality
+        userMenu.querySelector('#user-logout').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await this.logout();
+        });
+    }
+
+    async logout() {
+        try {
+            await fetch(`${this.apiBaseUrl}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Clear local storage and redirect
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/frontend/auth.html';
         }
     }
 }

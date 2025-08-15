@@ -11,6 +11,8 @@ import tempfile
 from datetime import datetime
 from flask import Flask, request, jsonify, send_file, g, send_from_directory
 from flask_cors import CORS
+from flask_login import LoginManager, login_required, current_user
+from flask_jwt_extended import JWTManager
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 from urllib.parse import urlparse
@@ -28,6 +30,16 @@ from logging_config import setup_logging
 from error_handlers import ErrorHandler, ValidationError, FileProcessingError, SecurityError
 from middleware import setup_middleware, health_monitor
 from mock_processor import get_mock_processor
+
+# Authentication imports
+try:
+    from models import db, User
+    from auth_service import AuthService
+    from auth_routes import auth_bp
+    AUTH_AVAILABLE = True
+except ImportError as e:
+    print(f"Authentication modules not available: {e}")
+    AUTH_AVAILABLE = False
 from ai_processor import AIProcessor
 from document_generator import DocumentGenerator
 
@@ -52,6 +64,38 @@ def create_app():
 
     # Enable CORS for frontend integration
     CORS(app)
+
+    # Setup authentication if available
+    if AUTH_AVAILABLE:
+        # Database setup
+        app.config['SQLALCHEMY_DATABASE_URI'] = app.config.get('DATABASE_URL', 'sqlite:///minutemate.db')
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        db.init_app(app)
+
+        # Login manager setup
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        login_manager.login_view = 'auth.login'
+        login_manager.login_message = 'Please log in to access this page.'
+
+        @login_manager.user_loader
+        def load_user(user_id):
+            return User.query.get(user_id)
+
+        # JWT setup
+        app.config['JWT_SECRET_KEY'] = app.config.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+        jwt = JWTManager(app)
+
+        # Register authentication blueprint
+        app.register_blueprint(auth_bp)
+
+        # Create database tables
+        with app.app_context():
+            db.create_all()
+
+        app.logger.info("Authentication system initialized")
+    else:
+        app.logger.warning("Authentication system not available - running without user accounts")
 
     # Setup error handling
     error_handler = ErrorHandler(app)
