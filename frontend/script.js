@@ -1304,6 +1304,9 @@ class MinuteMateApp {
                             <small>${this.currentUser.email}</small>
                         </div>
                         <hr>
+                        <a href="/frontend/dashboard.html" class="dropdown-item">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
                         <a href="#" class="dropdown-item" id="user-profile">
                             <i class="fas fa-user"></i> Profile
                         </a>

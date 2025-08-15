@@ -36,6 +36,8 @@ try:
     from models import db, User
     from auth_service import AuthService
     from auth_routes import auth_bp
+    from meeting_service import MeetingService
+    from meeting_routes import meeting_bp
     AUTH_AVAILABLE = True
 except ImportError as e:
     print(f"Authentication modules not available: {e}")
@@ -89,6 +91,9 @@ def create_app():
 
         # Register authentication blueprint
         app.register_blueprint(auth_bp)
+
+        # Register meeting blueprint
+        app.register_blueprint(meeting_bp)
 
         # Create database tables
         with app.app_context():
