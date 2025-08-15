@@ -35,3 +35,9 @@ psutil==5.9.6
 redis==4.6.0
 email-validator==2.0.0
 bleach==6.0.0
+
+# Production server
+gunicorn==21.2.0
+
+# Database drivers
+psycopg2-binary==2.9.7

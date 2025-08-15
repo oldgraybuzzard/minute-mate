@@ -37,13 +37,26 @@ if __name__ == "__main__":
     print()
     
     try:
-        # Run the Flask development server
-        app.run(
-            debug=True,
-            host='0.0.0.0',
-            port=8080,
-            threaded=True
-        )
+        # Get port from environment (Railway sets PORT)
+        port = int(os.environ.get('PORT', 8080))
+
+        # Production vs development settings
+        if os.environ.get('RAILWAY_ENVIRONMENT'):
+            # Production on Railway
+            app.run(
+                debug=False,
+                host='0.0.0.0',
+                port=port,
+                threaded=True
+            )
+        else:
+            # Local development
+            app.run(
+                debug=True,
+                host='0.0.0.0',
+                port=port,
+                threaded=True
+            )
     except KeyboardInterrupt:
         print("\n👋 MinuteMate server stopped.")
     except Exception as e:

@@ -106,9 +106,18 @@ def create_app():
 
     # Setup authentication if available
     if AUTH_AVAILABLE:
-        # Database setup
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'minutemate.db')
-        app.config['SQLALCHEMY_DATABASE_URI'] = app.config.get('DATABASE_URL', f'sqlite:///{db_path}')
+        # Database setup - Railway provides DATABASE_URL
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url and database_url.startswith('postgres://'):
+            # Fix for Railway's postgres:// URL (should be postgresql://)
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+        if database_url:
+            app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        else:
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'minutemate.db')
+            app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         db.init_app(app)
 
