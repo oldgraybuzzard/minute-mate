@@ -68,6 +68,8 @@ class MinuteMateApp {
         this.downloadHtmlBtn = document.getElementById('download-html');
         this.downloadJsonBtn = document.getElementById('download-json');
         this.viewPreviewBtn = document.getElementById('view-preview');
+        this.reviewBtn = document.getElementById('review-btn');
+        this.themeToggle = document.getElementById('theme-toggle');
 
         // Error elements
         this.errorText = document.getElementById('error-text');
@@ -143,9 +145,19 @@ class MinuteMateApp {
         this.downloadHtmlBtn.addEventListener('click', () => this.downloadFile('html'));
         this.downloadJsonBtn.addEventListener('click', () => this.downloadFile('json'));
         this.viewPreviewBtn.addEventListener('click', this.viewPreview.bind(this));
+        this.reviewBtn.addEventListener('click', this.showReviewModal.bind(this));
+
+        // Theme toggle
+        this.themeToggle.addEventListener('click', this.toggleTheme.bind(this));
 
         // Error events
         this.retryBtn.addEventListener('click', this.retryProcessing.bind(this));
+
+        // Initialize theme
+        this.initializeTheme();
+
+        // Initialize logo
+        this.initializeLogo();
 
         // Navigation events
         this.newUploadBtns.forEach(btn => {
@@ -995,6 +1007,249 @@ class MinuteMateApp {
             this.showToast('Failed to get system health: ' + error.message, 'error');
         } finally {
             this.hideLoading();
+        }
+    }
+
+    async showReviewModal() {
+        if (!this.currentJobId) {
+            this.showToast('No job ID available for review', 'error');
+            return;
+        }
+
+        try {
+            this.showLoading('Loading content for review...');
+
+            // For now, create a simple review modal with mock data
+            // In a real implementation, this would fetch the actual AI results
+            const mockResults = {
+                attendees: ['John Smith', 'Jane Doe', 'Bob Johnson'],
+                agenda_items: ['Budget Review', 'Project Updates', 'New Initiatives'],
+                motions: ['Approve Q4 Budget', 'Hire New Developer'],
+                action_items: ['John to prepare budget report by Friday', 'Jane to schedule follow-up meeting']
+            };
+
+            this.createReviewModal(mockResults);
+        } catch (error) {
+            this.showToast('Failed to load content for review: ' + error.message, 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    createReviewModal(aiResults) {
+        // Create the review modal
+        const modal = document.createElement('div');
+        modal.className = 'review-modal';
+        modal.innerHTML = `
+            <div class="review-modal-content">
+                <div class="review-modal-header">
+                    <h3><i class="fas fa-edit"></i> Review & Edit AI Results</h3>
+                    <button class="review-modal-close">&times;</button>
+                </div>
+                <div class="review-modal-body">
+                    <div class="review-section">
+                        <h4><i class="fas fa-users"></i> Meeting Attendees</h4>
+                        <div class="editable-list">
+                            ${(aiResults.attendees || []).map((attendee, index) => `
+                                <div class="editable-item">
+                                    <input type="text" value="${attendee}" class="edit-input">
+                                    <button class="remove-item" data-index="${index}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-item-btn" data-type="attendee">
+                            <i class="fas fa-plus"></i> Add Attendee
+                        </button>
+                    </div>
+
+                    <div class="review-section">
+                        <h4><i class="fas fa-list"></i> Agenda Items</h4>
+                        <div class="editable-list">
+                            ${(aiResults.agenda_items || []).map((item, index) => `
+                                <div class="editable-item">
+                                    <input type="text" value="${item}" class="edit-input">
+                                    <button class="remove-item" data-index="${index}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-item-btn" data-type="agenda">
+                            <i class="fas fa-plus"></i> Add Agenda Item
+                        </button>
+                    </div>
+
+                    <div class="review-section">
+                        <h4><i class="fas fa-gavel"></i> Motions</h4>
+                        <div class="editable-list">
+                            ${(aiResults.motions || []).map((motion, index) => `
+                                <div class="editable-item">
+                                    <input type="text" value="${motion}" class="edit-input">
+                                    <button class="remove-item" data-index="${index}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-item-btn" data-type="motion">
+                            <i class="fas fa-plus"></i> Add Motion
+                        </button>
+                    </div>
+
+                    <div class="review-section">
+                        <h4><i class="fas fa-tasks"></i> Action Items</h4>
+                        <div class="editable-list">
+                            ${(aiResults.action_items || []).map((action, index) => `
+                                <div class="editable-item">
+                                    <input type="text" value="${action}" class="edit-input">
+                                    <button class="remove-item" data-index="${index}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-item-btn" data-type="action">
+                            <i class="fas fa-plus"></i> Add Action Item
+                        </button>
+                    </div>
+                </div>
+                <div class="review-modal-footer">
+                    <button class="btn secondary" onclick="this.closest('.review-modal').remove()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn primary" id="save-changes-btn">
+                        <i class="fas fa-save"></i> Save Changes & Regenerate
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add event listeners
+        this.setupReviewModalEvents(modal);
+
+        document.body.appendChild(modal);
+    }
+
+    setupReviewModalEvents(modal) {
+        // Close button
+        modal.querySelector('.review-modal-close').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+
+        // Add item buttons
+        modal.querySelectorAll('.add-item-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const type = e.target.closest('.add-item-btn').dataset.type;
+                const list = e.target.closest('.review-section').querySelector('.editable-list');
+                const newItem = document.createElement('div');
+                newItem.className = 'editable-item';
+                newItem.innerHTML = `
+                    <input type="text" value="New ${type}" class="edit-input">
+                    <button class="remove-item">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                list.appendChild(newItem);
+
+                // Focus the new input
+                newItem.querySelector('.edit-input').focus();
+                newItem.querySelector('.edit-input').select();
+            });
+        });
+
+        // Remove item buttons (using event delegation)
+        modal.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-item')) {
+                e.target.closest('.editable-item').remove();
+            }
+        });
+
+        // Save changes button
+        modal.querySelector('#save-changes-btn').addEventListener('click', () => {
+            this.saveReviewChanges(modal);
+        });
+    }
+
+    saveReviewChanges(modal) {
+        this.showToast('Changes saved! Documents will be regenerated with your edits.', 'success');
+        modal.remove();
+
+        // In a real implementation, this would:
+        // 1. Collect all the edited data from the form
+        // 2. Send it back to the server to regenerate documents
+        // 3. Update the download links with new files
+    }
+
+    initializeTheme() {
+        // Check for saved theme preference or default to light mode
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        this.setTheme(savedTheme);
+    }
+
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        this.setTheme(newTheme);
+    }
+
+    setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+
+        // Update theme toggle icon
+        const icon = this.themeToggle.querySelector('i');
+        if (theme === 'dark') {
+            icon.className = 'fas fa-sun';
+            this.themeToggle.title = 'Switch to light mode';
+        } else {
+            icon.className = 'fas fa-moon';
+            this.themeToggle.title = 'Switch to dark mode';
+        }
+
+        // Add smooth transition effect
+        document.body.style.transition = 'background 0.3s ease, color 0.3s ease';
+        setTimeout(() => {
+            document.body.style.transition = '';
+        }, 300);
+    }
+
+    initializeLogo() {
+        const logoImage = document.querySelector('.logo-image');
+        if (logoImage) {
+            // Handle logo loading error
+            logoImage.addEventListener('error', () => {
+                console.warn('Logo image failed to load, using fallback');
+                logoImage.style.display = 'none';
+
+                // Add fallback icon to the title
+                const title = logoImage.nextElementSibling;
+                if (title && !title.textContent.includes('🧠')) {
+                    title.textContent = '🧠 ' + title.textContent;
+                }
+            });
+
+            // Handle successful logo load
+            logoImage.addEventListener('load', () => {
+                console.log('Logo loaded successfully');
+                logoImage.style.opacity = '0';
+                logoImage.style.transform = 'scale(0.8)';
+
+                // Animate in
+                setTimeout(() => {
+                    logoImage.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    logoImage.style.opacity = '1';
+                    logoImage.style.transform = 'scale(1)';
+                }, 100);
+            });
         }
     }
 }

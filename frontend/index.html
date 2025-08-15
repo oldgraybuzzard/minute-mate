@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MinuteMate - AI-Powered Meeting Minutes</title>
+    <link rel="preload" href="images/logo.png" as="image">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -11,9 +12,16 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <div class="logo">
-                <i class="fas fa-brain"></i>
-                <h1>MinuteMate</h1>
+            <div class="header-content">
+                <div class="logo">
+                    <img src="images/logo.png" alt="MinuteMate Logo" class="logo-image">
+                    <h1>MinuteMate</h1>
+                </div>
+                <div class="header-controls">
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
             </div>
             <p class="tagline">Transform your meeting recordings into professional minutes with AI</p>
         </header>
@@ -312,6 +320,15 @@ John Smith: All in favor? [Multiple voices: Aye] Motion carries."></textarea>
                                 <span class="summary-value" id="motions-count"></span>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="review-section">
+                        <h3>Review & Edit AI Results</h3>
+                        <p>Review the AI-generated content before downloading. Click any section to edit.</p>
+                        <button class="btn secondary" id="review-btn">
+                            <i class="fas fa-edit"></i>
+                            Review & Edit Content
+                        </button>
                     </div>
 
                     <div class="download-section">
