@@ -610,12 +610,54 @@ def monitoring_dashboard():
 @app.route('/frontend/')
 def serve_frontend():
     """Serve the main frontend page"""
-    return send_from_directory('../frontend', 'index.html')
+    # Try different path resolutions for Railway compatibility
+    import os
+    frontend_paths = [
+        '../frontend',
+        'frontend',
+        '/app/frontend',
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend')
+    ]
+
+    for frontend_path in frontend_paths:
+        try:
+            if os.path.exists(os.path.join(frontend_path, 'index.html')):
+                return send_from_directory(frontend_path, 'index.html')
+        except:
+            continue
+
+    # Fallback: return a simple HTML page with error info
+    return '''
+    <html>
+    <head><title>MinuteMate Frontend</title></head>
+    <body>
+        <h1>MinuteMate Frontend Loading Issue</h1>
+        <p>Frontend files not found. Checking paths...</p>
+        <p>Current working directory: ''' + os.getcwd() + '''</p>
+        <p>Available paths: ''' + str([p for p in frontend_paths if os.path.exists(p)]) + '''</p>
+    </body>
+    </html>
+    '''
 
 @app.route('/frontend/<path:filename>')
 def serve_frontend_files(filename):
     """Serve frontend static files"""
-    return send_from_directory('../frontend', filename)
+    import os
+    frontend_paths = [
+        '../frontend',
+        'frontend',
+        '/app/frontend',
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend')
+    ]
+
+    for frontend_path in frontend_paths:
+        try:
+            if os.path.exists(os.path.join(frontend_path, filename)):
+                return send_from_directory(frontend_path, filename)
+        except:
+            continue
+
+    return "File not found", 404
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
