@@ -1,23 +1,24 @@
 # Core Flask dependencies
-flask==3.0.0
+flask==3.0.3
 flask-cors==4.0.0
-werkzeug==3.0.1
+werkzeug==3.0.3
 
 # Authentication and security
 flask-login==0.6.3
 flask-bcrypt==1.0.1
 flask-jwt-extended==4.6.0
 flask-sqlalchemy==3.1.1
+flask-migrate==4.0.5
 
 # File handling and validation
 pydub==0.25.1
 python-magic==0.4.27
 
 # AI and transcription
-openai==1.35.0
+openai==1.54.3
 openai-whisper==20231117
-torch==2.1.0
-torchaudio==2.1.0
+torch==2.5.1
+torchaudio==2.5.1
 
 # Document processing
 python-docx==1.1.0
@@ -40,4 +41,8 @@ bleach==6.0.0
 gunicorn==21.2.0
 
 # Database drivers
-psycopg2-binary==2.9.7
+psycopg2-binary==2.9.9
+
+# Additional production dependencies
+ffmpeg-python==0.2.0
+python-multipart==0.0.6

@@ -14,7 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Advanced analytics dashboard
 - Multi-language UI support
 
-## [2.0.0] - 2024-01-15
+## [2.0.1] - 2025-08-15
+
+### 🔧 **Deployment Fixes**
+
+#### Fixed
+- **Updated PyTorch dependencies** from 2.1.0 to 2.5.1 for Railway compatibility
+- **Updated OpenAI library** to version 1.54.3 for latest features
+- **Updated Flask** to version 3.0.3 for security improvements
+- **Added Flask-Migrate** for database migration support
+- **Updated PostgreSQL driver** to psycopg2-binary 2.9.9
+- **Added FFmpeg Python bindings** for better audio processing
+- **Improved Railway configuration** with better health checks
+- **Added Python version specification** (3.11.9) for consistent deployments
+
+#### Enhanced
+- **Better Gunicorn configuration** with request limits and jitter
+- **Improved build process** with pip upgrade during installation
+- **Health check endpoint** updated to `/api/health` for better monitoring
+
+## [2.0.0] - 2025-08-15
 
 ### 🎉 **Major Release - Enterprise Features**
 
@@ -101,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database connection pooling
 - Error handling edge cases
 
-## [1.5.0] - 2023-12-01
+## [1.5.0] - 2025-06-01
 
 ### Added
 - **📄 Document Generation**
@@ -141,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error message clarity
 - Cross-browser compatibility
 
-## [1.0.0] - 2023-10-15
+## [1.0.0] - 2025-01-15
 
 ### 🎉 **Initial Release**
 
@@ -187,14 +206,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 🚀 **Deployment History**
 
-### Railway Deployment - 2024-01-15
+### Railway Deployment - 2025-08-15
 - **Production-ready configuration**
 - **PostgreSQL database integration**
 - **Environment variable management**
 - **Automatic scaling support**
 - **Health monitoring**
 
-### Local Development - 2023-10-15
+### Local Development - 2025-01-15
 - **Initial development setup**
 - **SQLite database**
 - **Basic Flask configuration**
@@ -246,7 +265,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 🔮 **Roadmap**
 
-### Version 2.1.0 (Q2 2024)
+### Version 2.1.0 (Q4 2025)
 - **Mobile Applications**
   - iOS app with recording capabilities
   - Android app with offline processing
@@ -258,7 +277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Predictive insights
   - Custom AI model training
 
-### Version 2.2.0 (Q3 2024)
+### Version 2.2.0 (Q1 2026)
 - **Enterprise Features**
   - Single Sign-On (SSO) integration
   - Advanced user management
@@ -271,7 +290,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Version control for minutes
   - Team workspaces
 
-### Version 3.0.0 (Q4 2024)
+### Version 3.0.0 (Q2 2026)
 - **AI-Powered Insights**
   - Meeting pattern analysis
   - Productivity recommendations
@@ -324,4 +343,4 @@ MinuteMate is released under the [MIT License](LICENSE).
 
 ---
 
-*For the complete version history and detailed technical changes, see the [GitHub Releases](https://github.com/yourusername/minute-mate/releases) page.*
+*For the complete version history and detailed technical changes, see the [GitHub Releases](https://github.com/oldgraybuzzard/minute-mate/releases) page.*

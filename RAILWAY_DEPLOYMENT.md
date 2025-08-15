@@ -94,21 +94,30 @@ FLASK_ENV=production
 
 ### **Common Issues:**
 
-**Build Fails:**
-- Check `requirements.txt` for invalid packages
-- Ensure Python version compatibility
+**Build Fails with PyTorch Error:**
+- ✅ **Fixed in v2.0.1** - Updated to PyTorch 2.5.1
+- Ensure `requirements.txt` has compatible versions
+- Check Python version is 3.11.9
 
 **Database Connection Error:**
 - Verify `DATABASE_URL` is set
 - Check if PostgreSQL service is running
+- Run database migrations: `flask db upgrade`
 
 **File Upload Issues:**
 - Railway has 100MB request limit
 - Consider cloud storage for large files
+- Check FFmpeg is available for audio processing
 
 **OpenAI API Errors:**
 - Verify `OPENAI_API_KEY` is set correctly
 - Check API key has sufficient credits
+- Ensure OpenAI library is version 1.54.3+
+
+**Health Check Failures:**
+- Verify `/api/health` endpoint is accessible
+- Check application startup logs
+- Ensure all environment variables are set
 
 ### **Logs and Debugging:**
 ```bash
