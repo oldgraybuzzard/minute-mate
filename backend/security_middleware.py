@@ -240,17 +240,25 @@ class SecurityMiddleware:
     def _apply_rate_limiting(self):
         """Apply rate limiting based on request type and user"""
         try:
+            # Check if rate limiting is disabled
+            if os.getenv('DISABLE_RATE_LIMITING', 'false').lower() == 'true':
+                return None
+
             # Get rate limit configuration
             endpoint = request.endpoint or 'unknown'
             
-            # Different limits for different endpoints
+            # Different limits for different endpoints - More generous for production
             rate_limits = {
-                'auth.login': (5, 300),  # 5 attempts per 5 minutes
-                'auth.register': (3, 3600),  # 3 attempts per hour
-                'upload': (10, 3600),  # 10 uploads per hour
-                'api.upload': (10, 3600),
-                'doc_comparison.upload_edited_document': (5, 3600),  # 5 document comparisons per hour
-                'default': (100, 3600)  # 100 requests per hour for other endpoints
+                'auth.login': (10, 300),  # 10 attempts per 5 minutes
+                'auth.register': (5, 3600),  # 5 attempts per hour
+                'upload': (20, 3600),  # 20 uploads per hour
+                'api.upload': (20, 3600),
+                'doc_comparison.upload_edited_document': (10, 3600),  # 10 document comparisons per hour
+                'serve_frontend': (1000, 3600),  # 1000 frontend requests per hour
+                'serve_frontend_files': (1000, 3600),  # 1000 static file requests per hour
+                'comprehensive_health_check': (200, 3600),  # 200 health checks per hour
+                'index': (500, 3600),  # 500 main page requests per hour
+                'default': (500, 3600)  # 500 requests per hour for other endpoints
             }
             
             limit, window = rate_limits.get(endpoint, rate_limits['default'])

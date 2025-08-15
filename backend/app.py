@@ -1427,6 +1427,21 @@ def add_monitoring_endpoints(app):
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }), 500
 
+    @app.route('/api/admin/reset-rate-limits', methods=['POST'])
+    def reset_rate_limits():
+        """Reset rate limits for debugging"""
+        try:
+            # Clear rate limits from security middleware
+            if hasattr(app, 'security_middleware') and hasattr(app.security_middleware, 'rate_limiter'):
+                app.security_middleware.rate_limiter.memory_store.clear()
+
+            return jsonify({
+                'success': True,
+                'message': 'Rate limits reset successfully'
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     @app.route('/api/admin/system-info')
     def system_info():
         """Get system information and metrics"""
