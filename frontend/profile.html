@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinuteMate - Profile & Settings</title>
+    <link rel="preload" href="images/logo.png" as="image">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="profile-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="images/logo.png" alt="MinuteMate Logo" class="logo-image">
+                    <h1>MinuteMate</h1>
+                </div>
+                <div class="header-controls">
+                    <div class="user-menu">
+                        <button class="user-menu-toggle" id="user-menu-toggle">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="user-name">Loading...</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <div class="user-info">
+                                <strong id="user-full-name">Loading...</strong>
+                                <small id="user-email">Loading...</small>
+                            </div>
+                            <hr>
+                            <a href="/frontend/" class="dropdown-item">
+                                <i class="fas fa-plus"></i> New Meeting
+                            </a>
+                            <a href="/frontend/dashboard.html" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                            <a href="/frontend/templates.html" class="dropdown-item">
+                                <i class="fas fa-file-alt"></i> Templates
+                            </a>
+                            <a href="/frontend/calendar.html" class="dropdown-item">
+                                <i class="fas fa-calendar-alt"></i> Calendar
+                            </a>
+                            <a href="/frontend/batch.html" class="dropdown-item">
+                                <i class="fas fa-layer-group"></i> Batch Processing
+                            </a>
+                            <hr>
+                            <a href="#" class="dropdown-item" id="user-logout">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="profile-main">
+            <!-- Profile Header -->
+            <div class="profile-header">
+                <div class="profile-title">
+                    <h2><i class="fas fa-user-cog"></i> Profile & Settings</h2>
+                    <p>Manage your account information and application preferences</p>
+                </div>
+            </div>
+
+            <!-- Profile Tabs -->
+            <div class="profile-tabs">
+                <button class="tab-button active" data-tab="profile">
+                    <i class="fas fa-user"></i> Profile
+                </button>
+                <button class="tab-button" data-tab="preferences">
+                    <i class="fas fa-cog"></i> Preferences
+                </button>
+                <button class="tab-button" data-tab="security">
+                    <i class="fas fa-shield-alt"></i> Security
+                </button>
+                <button class="tab-button" data-tab="data">
+                    <i class="fas fa-database"></i> Data
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Profile Tab -->
+                <div class="tab-pane active" id="profile-tab">
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-user"></i> Personal Information</h3>
+                            <p>Update your basic profile information</p>
+                        </div>
+                        
+                        <div class="profile-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-value" id="total-meetings">0</div>
+                                    <div class="stat-label">Total Meetings</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-value" id="completed-meetings">0</div>
+                                    <div class="stat-label">Completed</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-value" id="total-batches">0</div>
+                                    <div class="stat-label">Batch Jobs</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-value" id="success-rate">0%</div>
+                                    <div class="stat-label">Success Rate</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form id="profile-form" class="profile-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="first-name">First Name *</label>
+                                    <input type="text" id="first-name" name="first_name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="last-name">Last Name *</label>
+                                    <input type="text" id="last-name" name="last_name" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">Email Address *</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="timezone">Timezone</label>
+                                    <select id="timezone" name="timezone">
+                                        <option value="UTC">UTC</option>
+                                        <option value="America/New_York">Eastern Time</option>
+                                        <option value="America/Chicago">Central Time</option>
+                                        <option value="America/Denver">Mountain Time</option>
+                                        <option value="America/Los_Angeles">Pacific Time</option>
+                                        <option value="Europe/London">London</option>
+                                        <option value="Europe/Paris">Paris</option>
+                                        <option value="Europe/Berlin">Berlin</option>
+                                        <option value="Asia/Tokyo">Tokyo</option>
+                                        <option value="Asia/Shanghai">Shanghai</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="language">Language</label>
+                                    <select id="language" name="language">
+                                        <option value="en">English</option>
+                                        <option value="es">Español</option>
+                                        <option value="fr">Français</option>
+                                        <option value="de">Deutsch</option>
+                                        <option value="it">Italiano</option>
+                                        <option value="pt">Português</option>
+                                        <option value="ja">日本語</option>
+                                        <option value="zh">中文</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Preferences Tab -->
+                <div class="tab-pane" id="preferences-tab">
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-cog"></i> Application Preferences</h3>
+                            <p>Customize your MinuteMate experience</p>
+                        </div>
+                        
+                        <form id="preferences-form" class="preferences-form">
+                            <div class="preference-group">
+                                <h4><i class="fas fa-palette"></i> Appearance</h4>
+                                <div class="form-group">
+                                    <label for="theme-select">Theme</label>
+                                    <select id="theme-select" name="theme">
+                                        <option value="light">Light</option>
+                                        <option value="dark">Dark</option>
+                                        <option value="auto">Auto (System)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="preference-group">
+                                <h4><i class="fas fa-bell"></i> Notifications</h4>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="email-notifications" checked>
+                                        <span class="checkmark"></span>
+                                        Email notifications
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="processing-complete" checked>
+                                        <span class="checkmark"></span>
+                                        Processing complete notifications
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="batch-complete" checked>
+                                        <span class="checkmark"></span>
+                                        Batch processing complete
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="calendar-sync" checked>
+                                        <span class="checkmark"></span>
+                                        Calendar sync notifications
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="preference-group">
+                                <h4><i class="fas fa-cogs"></i> Processing Defaults</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="default-format">Default Document Format</label>
+                                        <select id="default-format" name="default_document_format">
+                                            <option value="docx">Word (.docx)</option>
+                                            <option value="pdf">PDF (.pdf)</option>
+                                            <option value="txt">Text (.txt)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="max-file-size">Max File Size (MB)</label>
+                                        <input type="number" id="max-file-size" name="max_file_size" min="1" max="500" value="100">
+                                    </div>
+                                </div>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="auto-generate-docs" checked>
+                                        <span class="checkmark"></span>
+                                        Auto-generate documents
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="auto-start-batch">
+                                        <span class="checkmark"></span>
+                                        Auto-start batch processing
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="preference-group">
+                                <h4><i class="fas fa-shield-alt"></i> Privacy</h4>
+                                <div class="form-group">
+                                    <label for="data-retention">Data Retention (days)</label>
+                                    <input type="number" id="data-retention" name="data_retention_days" min="30" max="3650" value="365">
+                                </div>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="auto-delete-temp">
+                                        <span class="checkmark"></span>
+                                        Auto-delete temporary files
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="share-analytics">
+                                        <span class="checkmark"></span>
+                                        Share anonymous usage analytics
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn primary">
+                                    <i class="fas fa-save"></i> Save Preferences
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Security Tab -->
+                <div class="tab-pane" id="security-tab">
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-shield-alt"></i> Security Settings</h3>
+                            <p>Manage your account security and password</p>
+                        </div>
+                        
+                        <form id="password-form" class="password-form">
+                            <div class="form-group">
+                                <label for="current-password">Current Password *</label>
+                                <input type="password" id="current-password" name="current_password" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="new-password">New Password *</label>
+                                <input type="password" id="new-password" name="new_password" required>
+                                <small class="form-help">
+                                    Password must be at least 8 characters with uppercase, lowercase, and number
+                                </small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="confirm-password">Confirm New Password *</label>
+                                <input type="password" id="confirm-password" name="confirm_password" required>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn primary">
+                                    <i class="fas fa-key"></i> Change Password
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div class="security-info">
+                            <h4><i class="fas fa-info-circle"></i> Account Information</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <strong>Account Created:</strong>
+                                    <span id="account-created">Loading...</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>Last Login:</strong>
+                                    <span id="last-login">Loading...</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>Account Status:</strong>
+                                    <span class="status-active">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Tab -->
+                <div class="tab-pane" id="data-tab">
+                    <div class="profile-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-database"></i> Data Management</h3>
+                            <p>Export or delete your account data</p>
+                        </div>
+                        
+                        <div class="data-actions">
+                            <div class="action-card">
+                                <div class="action-icon">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h4>Export Data</h4>
+                                    <p>Download all your data including meetings, templates, and settings</p>
+                                    <button class="btn secondary" id="export-data-btn">
+                                        <i class="fas fa-download"></i> Export Data
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="action-card danger">
+                                <div class="action-icon">
+                                    <i class="fas fa-trash-alt"></i>
+                                </div>
+                                <div class="action-content">
+                                    <h4>Delete Account</h4>
+                                    <p>Permanently delete your account and all associated data</p>
+                                    <button class="btn danger" id="delete-account-btn">
+                                        <i class="fas fa-trash-alt"></i> Delete Account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Delete Account Modal -->
+        <div class="delete-modal" id="delete-modal">
+            <div class="delete-modal-content">
+                <div class="delete-modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Delete Account</h3>
+                    <button class="delete-modal-close">&times;</button>
+                </div>
+                <div class="delete-modal-body">
+                    <p><strong>Warning:</strong> This action cannot be undone. All your data will be permanently deleted.</p>
+                    
+                    <form id="delete-form">
+                        <div class="form-group">
+                            <label for="delete-password">Enter your password to confirm:</label>
+                            <input type="password" id="delete-password" name="password" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="delete-confirmation">Type "DELETE" to confirm:</label>
+                            <input type="text" id="delete-confirmation" name="confirmation" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="delete-modal-footer">
+                    <button class="btn secondary" id="cancel-delete">Cancel</button>
+                    <button class="btn danger" id="confirm-delete">
+                        <i class="fas fa-trash-alt"></i> Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast">
+            <div class="toast-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="toast-message">Message</div>
+            <button class="toast-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="profile.js"></script>
+</body>
+</html>

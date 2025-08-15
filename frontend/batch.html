@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinuteMate - Batch Processing</title>
+    <link rel="preload" href="images/logo.png" as="image">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="batch-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="images/logo.png" alt="MinuteMate Logo" class="logo-image">
+                    <h1>MinuteMate</h1>
+                </div>
+                <div class="header-controls">
+                    <div class="user-menu">
+                        <button class="user-menu-toggle" id="user-menu-toggle">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="user-name">Loading...</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <div class="user-info">
+                                <strong id="user-full-name">Loading...</strong>
+                                <small id="user-email">Loading...</small>
+                            </div>
+                            <hr>
+                            <a href="/frontend/" class="dropdown-item">
+                                <i class="fas fa-plus"></i> New Meeting
+                            </a>
+                            <a href="/frontend/dashboard.html" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                            <a href="/frontend/templates.html" class="dropdown-item">
+                                <i class="fas fa-file-alt"></i> Templates
+                            </a>
+                            <a href="/frontend/calendar.html" class="dropdown-item">
+                                <i class="fas fa-calendar-alt"></i> Calendar
+                            </a>
+                            <a href="/frontend/profile.html" class="dropdown-item">
+                                <i class="fas fa-user-cog"></i> Profile & Settings
+                            </a>
+                            <hr>
+                            <a href="#" class="dropdown-item" id="user-logout">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="batch-main">
+            <!-- Batch Header -->
+            <div class="batch-header">
+                <div class="batch-title">
+                    <h2><i class="fas fa-layer-group"></i> Batch Processing</h2>
+                    <p>Upload and process multiple meeting recordings simultaneously</p>
+                </div>
+                <div class="batch-actions">
+                    <button class="btn secondary" id="view-stats-btn">
+                        <i class="fas fa-chart-bar"></i> Statistics
+                    </button>
+                    <button class="btn primary" id="new-batch-btn">
+                        <i class="fas fa-plus"></i> New Batch
+                    </button>
+                </div>
+            </div>
+
+            <!-- Batch Upload Section -->
+            <div class="batch-upload-section" id="batch-upload-section" style="display: none;">
+                <div class="upload-card">
+                    <div class="upload-header">
+                        <h3><i class="fas fa-cloud-upload-alt"></i> Create New Batch</h3>
+                        <button class="close-upload" id="close-upload-btn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="batch-upload-form" enctype="multipart/form-data">
+                        <!-- Batch Configuration -->
+                        <div class="batch-config">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="batch-name">Batch Name *</label>
+                                    <input type="text" id="batch-name" name="batch_name" required 
+                                           placeholder="e.g., Weekly Team Meetings">
+                                </div>
+                                <div class="form-group">
+                                    <label for="batch-template">Template</label>
+                                    <select id="batch-template" name="template_id">
+                                        <option value="">No template</option>
+                                        <!-- Templates will be populated dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="batch-description">Description</label>
+                                <textarea id="batch-description" name="batch_description" rows="2"
+                                          placeholder="Optional description for this batch"></textarea>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="generate-documents" name="generate_documents" checked>
+                                        Generate Documents
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="auto-start" name="auto_start" checked>
+                                        Auto-start Processing
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" id="document-formats-group">
+                                <label>Document Formats</label>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" name="document_formats" value="docx" checked> Word (.docx)</label>
+                                    <label><input type="checkbox" name="document_formats" value="pdf"> PDF (.pdf)</label>
+                                    <label><input type="checkbox" name="document_formats" value="txt"> Text (.txt)</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Upload -->
+                        <div class="file-upload-section">
+                            <div class="upload-zone" id="upload-zone">
+                                <div class="upload-content">
+                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                    <h4>Drag & Drop Files Here</h4>
+                                    <p>or <button type="button" class="btn-link" id="browse-files">browse files</button></p>
+                                    <small>Supported: MP3, MP4, WAV, M4A, WEBM (Max 100MB per file, 500MB total)</small>
+                                </div>
+                                <input type="file" id="file-input" name="files" multiple 
+                                       accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.webm" style="display: none;">
+                            </div>
+                            
+                            <div class="file-list" id="file-list" style="display: none;">
+                                <h4>Selected Files</h4>
+                                <div class="files-container" id="files-container">
+                                    <!-- Files will be listed here -->
+                                </div>
+                                <div class="file-summary" id="file-summary">
+                                    <span id="file-count">0 files</span> • 
+                                    <span id="total-size">0 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-actions">
+                            <button type="button" class="btn secondary" id="cancel-batch">Cancel</button>
+                            <button type="submit" class="btn primary" id="create-batch" disabled>
+                                <i class="fas fa-layer-group"></i> Create Batch
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Batch Jobs List -->
+            <div class="batch-jobs-section">
+                <h3><i class="fas fa-list"></i> Batch Jobs</h3>
+                <div class="batch-filters">
+                    <select id="status-filter">
+                        <option value="">All Statuses</option>
+                        <option value="created">Created</option>
+                        <option value="uploaded">Uploaded</option>
+                        <option value="processing">Processing</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                        <option value="partial">Partial</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                
+                <div class="batch-jobs-list" id="batch-jobs-list">
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading batch jobs...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Statistics Modal -->
+        <div class="stats-modal" id="stats-modal">
+            <div class="stats-modal-content">
+                <div class="stats-modal-header">
+                    <h3><i class="fas fa-chart-bar"></i> Batch Processing Statistics</h3>
+                    <button class="stats-modal-close">&times;</button>
+                </div>
+                <div class="stats-modal-body" id="stats-content">
+                    <!-- Statistics will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="confirmation-modal" id="confirmation-modal">
+            <div class="confirmation-modal-content">
+                <div class="confirmation-modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Confirm Action</h3>
+                </div>
+                <div class="confirmation-modal-body">
+                    <p id="confirmation-message">Are you sure you want to perform this action?</p>
+                </div>
+                <div class="confirmation-modal-footer">
+                    <button class="btn secondary" id="cancel-confirmation">Cancel</button>
+                    <button class="btn danger" id="confirm-action">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Processing...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast">
+            <div class="toast-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="toast-message">Message</div>
+            <button class="toast-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="batch.js"></script>
+</body>
+</html>

@@ -1313,8 +1313,11 @@ class MinuteMateApp {
                         <a href="/frontend/calendar.html" class="dropdown-item">
                             <i class="fas fa-calendar-alt"></i> Calendar
                         </a>
-                        <a href="#" class="dropdown-item" id="user-profile">
-                            <i class="fas fa-user"></i> Profile
+                        <a href="/frontend/batch.html" class="dropdown-item">
+                            <i class="fas fa-layer-group"></i> Batch Processing
+                        </a>
+                        <a href="/frontend/profile.html" class="dropdown-item">
+                            <i class="fas fa-user-cog"></i> Profile & Settings
                         </a>
                         <a href="#" class="dropdown-item" id="user-meetings">
                             <i class="fas fa-history"></i> Meeting History

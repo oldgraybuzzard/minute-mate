@@ -42,6 +42,9 @@ try:
     from template_routes import template_bp
     from calendar_service import CalendarService
     from calendar_routes import calendar_bp
+    from batch_service import batch_processor
+    from batch_routes import batch_bp
+    from profile_routes import profile_bp
     AUTH_AVAILABLE = True
 except ImportError as e:
     print(f"Authentication modules not available: {e}")
@@ -104,6 +107,12 @@ def create_app():
 
         # Register calendar blueprint
         app.register_blueprint(calendar_bp)
+
+        # Register batch blueprint
+        app.register_blueprint(batch_bp)
+
+        # Register profile blueprint
+        app.register_blueprint(profile_bp)
 
         # Create database tables
         with app.app_context():

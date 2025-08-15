@@ -37,6 +37,7 @@ class User(UserMixin, db.Model):
     # User preferences
     theme = db.Column(db.String(20), default='light', nullable=False)
     timezone = db.Column(db.String(50), default='UTC', nullable=False)
+    language = db.Column(db.String(10), default='en', nullable=False)
     
     # Relationships
     meetings = db.relationship('Meeting', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -149,6 +150,9 @@ class Meeting(db.Model):
     
     # Template used
     template_id = db.Column(db.String(36), db.ForeignKey('meeting_templates.id'))
+
+    # Batch processing association
+    batch_job_id = db.Column(db.String(36), db.ForeignKey('batch_jobs.id'))
     
     def to_dict(self):
         """Convert meeting to dictionary"""
@@ -348,3 +352,86 @@ class CalendarEvent(db.Model):
 
     def __repr__(self):
         return f'<CalendarEvent {self.title}>'
+
+
+class BatchJob(db.Model):
+    """Batch processing job model for handling multiple file uploads"""
+
+    __tablename__ = 'batch_jobs'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+
+    # Job information
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+
+    # File counts
+    total_files = db.Column(db.Integer, default=0, nullable=False)
+    uploaded_files = db.Column(db.Integer, default=0, nullable=False)
+    processed_files = db.Column(db.Integer, default=0, nullable=False)
+    failed_files = db.Column(db.Integer, default=0, nullable=False)
+
+    # Processing configuration
+    template_id = db.Column(db.String(36), db.ForeignKey('meeting_templates.id'))
+    processing_options = db.Column(db.JSON)  # Processing settings
+    files_data = db.Column(db.JSON)  # Array of file information
+
+    # Status tracking
+    status = db.Column(db.String(50), default='created', nullable=False)
+    # Statuses: created, uploaded, processing, completed, failed, cancelled, partial
+    error_message = db.Column(db.Text)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                          onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    user = db.relationship('User', backref='batch_jobs')
+    template = db.relationship('MeetingTemplate', backref='batch_jobs')
+    meetings = db.relationship('Meeting', backref='batch_job', lazy='dynamic')
+
+    def to_dict(self):
+        """Convert batch job to dictionary"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'total_files': self.total_files,
+            'uploaded_files': self.uploaded_files,
+            'processed_files': self.processed_files,
+            'failed_files': self.failed_files,
+            'template_id': self.template_id,
+            'processing_options': self.processing_options,
+            'files_data': self.files_data,
+            'status': self.status,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'progress_percentage': self.get_progress_percentage(),
+            'duration': self.get_duration()
+        }
+
+    def get_progress_percentage(self):
+        """Calculate progress percentage"""
+        if self.total_files == 0:
+            return 0
+        completed = self.processed_files + self.failed_files
+        return round((completed / self.total_files) * 100, 1)
+
+    def get_duration(self):
+        """Get processing duration in seconds"""
+        if not self.started_at:
+            return None
+
+        end_time = self.completed_at or datetime.now(timezone.utc)
+        duration = (end_time - self.started_at).total_seconds()
+        return round(duration, 1)
+
+    def __repr__(self):
+        return f'<BatchJob {self.name}>'
