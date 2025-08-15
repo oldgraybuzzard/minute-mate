@@ -298,12 +298,16 @@ def setup_database_monitoring(engine):
         duration = time.time() - context._query_start_time
         db_monitor.record_query(statement, duration, success=True)
     
-    @event.listens_for(engine, "dbapi_error")
-    def receive_dbapi_error(exception_context):
-        db_monitor.record_connection_event('error', {
-            'error': str(exception_context.original_exception),
-            'statement': getattr(exception_context, 'statement', None)
-        })
+    # Only add dbapi_error listener for databases that support it (not SQLite)
+    try:
+        @event.listens_for(engine, "dbapi_error")
+        def receive_dbapi_error(exception_context):
+            db_monitor.record_connection_event('error', {
+                'error': str(exception_context.original_exception),
+                'statement': getattr(exception_context, 'statement', None)
+            })
+    except Exception as e:
+        logger.warning(f"Could not add dbapi_error listener (database may not support it): {e}")
         
         # Record failed query
         if hasattr(exception_context, 'statement'):

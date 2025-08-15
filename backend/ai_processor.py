@@ -40,8 +40,14 @@ class AIProcessor:
                 logger.warning("OPENAI_API_KEY not found in environment variables")
                 return
             
-            if api_key == 'openai_api_key' or api_key.startswith('sk-proj-'):
-                logger.warning("Using placeholder or example API key. AI processing will be disabled.")
+            # Check for placeholder or invalid API keys
+            if api_key in ['openai_api_key', 'your-openai-api-key-here', 'sk-...']:
+                logger.warning("Using placeholder API key. AI processing will be disabled.")
+                return
+
+            # Validate API key format (should start with sk- and be at least 40 characters)
+            if not api_key.startswith('sk-') or len(api_key) < 40:
+                logger.warning("Invalid OpenAI API key format. AI processing will be disabled.")
                 return
             
             self.client = OpenAI(api_key=api_key)
