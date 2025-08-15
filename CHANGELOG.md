@@ -1,6 +1,6 @@
-# 📝 MinuteMate Changelog
+# 📝 BoardMinutes Changelog
 
-All notable changes to MinuteMate will be documented in this file.
+All notable changes to BoardMinutes will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -12,6 +12,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PDF export functionality
 - Mobile app (iOS/Android)
 - Advanced analytics dashboard
+
+## [2.1.0] - 2025-08-15
+
+### 🎯 **MAJOR REBRAND: MinuteMate → BoardMinutes**
+
+#### Strategic Repositioning
+- **Rebranded to BoardMinutes** to differentiate from minute-mate.com competitor
+- **New positioning:** Professional board meeting minutes for everyone
+- **Broader market appeal:** Corporate boards, non-profits, education, government, HOAs
+- **Competitive advantage:** Universal solution vs. niche HOA-only competitors
+
+#### Updated Branding
+- **All frontend titles** updated to BoardMinutes
+- **Application name** changed throughout codebase
+- **New tagline:** "Professional board meeting minutes powered by AI"
+- **Updated README** with new positioning and value proposition
+
+#### Competitive Strategy
+- **Created competitive positioning document** with market analysis
+- **Pricing strategy** designed to undercut expensive competitors
+- **Market differentiation** from HOA-specific solutions
+- **Professional focus** while maintaining accessibility
 - Multi-language UI support
 
 ## [2.0.1] - 2025-08-15

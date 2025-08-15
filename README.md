@@ -1,8 +1,8 @@
-# 🎙️ MinuteMate
+# 📋 BoardMinutes
 
-**The Ultimate AI-Powered Meeting Management Platform**
+**Professional AI-Powered Board Meeting Minutes**
 
-Transform your meeting recordings into professional, structured minutes with advanced AI intelligence, enterprise-grade security, and seamless integrations.
+Transform your board meeting recordings into professional, compliant minutes with advanced AI intelligence. BoardMinutes is designed specifically for professional boards, committees, and governance meetings.
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/minutemate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

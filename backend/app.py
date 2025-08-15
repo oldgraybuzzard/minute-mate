@@ -1,6 +1,6 @@
 """
-MinuteMate Flask Application
-Main application file for the MinuteMate AI-powered meeting minutes generator.
+BoardMinutes Flask Application
+Main application file for the BoardMinutes AI-powered board meeting minutes generator.
 """
 
 import os
@@ -207,7 +207,7 @@ def create_app():
     def health_check():
         return jsonify({
             'status': 'healthy',
-            'service': 'MinuteMate API',
+            'service': 'BoardMinutes API',
             'version': '1.0.0',
             'timestamp': datetime.now().isoformat()
         })
@@ -270,7 +270,7 @@ def create_app():
 
     # Log application startup
     logger = logging.getLogger(__name__)
-    logger.info("MinuteMate application initialized successfully")
+    logger.info("BoardMinutes application initialized successfully")
 
     return app
 
@@ -478,7 +478,7 @@ def process_transcript_file(file, job_id, form_data):
 def index():
     """Health check and API info endpoint"""
     return jsonify({
-        'message': 'MinuteMate API is running',
+        'message': 'BoardMinutes API is running',
         'version': '1.0.0',
         'status': 'healthy',
         'endpoints': {
