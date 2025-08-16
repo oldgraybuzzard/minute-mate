@@ -44,6 +44,11 @@ class BaseConfig:
     def ALLOWED_EXTENSIONS(self):
         return self.ALLOWED_AUDIO_EXTENSIONS | self.ALLOWED_VIDEO_EXTENSIONS
     
+    # AI Processing settings
+    OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4-turbo-preview')  # gpt-3.5-turbo, gpt-4, gpt-4-turbo-preview, gpt-4o
+    OPENAI_MAX_TOKENS = int(os.environ.get('OPENAI_MAX_TOKENS', '4000'))
+    OPENAI_TEMPERATURE = float(os.environ.get('OPENAI_TEMPERATURE', '0.1'))
+
     # Whisper settings
     WHISPER_MODEL = os.environ.get('WHISPER_MODEL', 'base')  # tiny, base, small, medium, large
     WHISPER_LANGUAGE = os.environ.get('WHISPER_LANGUAGE', 'en')
