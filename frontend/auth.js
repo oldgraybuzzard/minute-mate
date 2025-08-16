@@ -1,11 +1,11 @@
 /**
- * MinuteMate Authentication JavaScript
+ * BoardMinutes Authentication JavaScript
  * Handles user login, registration, and authentication flows
  */
 
 class AuthApp {
     constructor() {
-        this.apiBaseUrl = window.location.origin;
+        this.apiBaseUrl = 'http://localhost:5000';
         this.currentForm = 'login-form';
         
         this.initializeElements();
@@ -100,7 +100,7 @@ class AuthApp {
                 
                 // Redirect to main app
                 setTimeout(() => {
-                    window.location.href = '/frontend/';
+                    window.location.href = '/frontend/index.html';
                 }, 1500);
             } else {
                 this.showToast(result.message, 'error');
@@ -259,7 +259,7 @@ class AuthApp {
                 const result = await response.json();
                 if (result.success) {
                     // User is already logged in, redirect to main app
-                    window.location.href = '/frontend/';
+                    window.location.href = '/frontend/index.html';
                 }
             }
         } catch (error) {

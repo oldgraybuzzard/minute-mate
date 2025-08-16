@@ -5,8 +5,8 @@
 
 class MinuteMateApp {
     constructor() {
-        // Auto-detect API base URL based on current location
-        this.apiBaseUrl = window.location.origin;
+        // API base URL - backend runs on port 5000
+        this.apiBaseUrl = 'http://localhost:5000';
         this.currentJobId = null;
         this.selectedFile = null;
         this.pollInterval = null;
@@ -85,7 +85,11 @@ class MinuteMateApp {
             upload: document.getElementById('upload-section'),
             processing: document.getElementById('processing-section'),
             results: document.getElementById('results-section'),
-            error: document.getElementById('error-section')
+            error: document.getElementById('error-section'),
+            dashboard: document.getElementById('dashboard-section'),
+            templates: document.getElementById('templates-section'),
+            profile: document.getElementById('profile-section'),
+            settings: document.getElementById('settings-section')
         };
 
         // Processing steps
@@ -160,8 +164,10 @@ class MinuteMateApp {
         // Initialize logo
         this.initializeLogo();
 
-        // Check authentication - temporarily disabled for testing
-        // this.checkAuthentication();
+        // Check authentication
+        this.checkAuthentication();
+
+        // Navigation handled by multi-page architecture
 
         // Navigation events
         this.newUploadBtns.forEach(btn => {
@@ -175,6 +181,8 @@ class MinuteMateApp {
         document.addEventListener('dragover', e => e.preventDefault());
         document.addEventListener('drop', e => e.preventDefault());
     }
+
+
 
     // File handling methods
     handleDragOver(e) {

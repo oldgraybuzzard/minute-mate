@@ -3,6 +3,7 @@ MinuteMate Middleware
 Request/response middleware for logging, monitoring, and security.
 """
 
+import os
 import time
 import logging
 import uuid
@@ -233,10 +234,14 @@ class RequestMiddleware:
     
     def _check_rate_limit(self, client_ip: str) -> bool:
         """Check rate limit for client"""
+        # Check if rate limiting is disabled for development
+        if os.getenv('DISABLE_RATE_LIMITING', 'false').lower() == 'true':
+            return True
+
         # Skip rate limiting for health checks
         if request.path == '/' and request.method == 'GET':
             return True
-        
+
         return self.rate_limiter.is_allowed(client_ip)
     
     def _check_security(self):

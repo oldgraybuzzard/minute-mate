@@ -93,6 +93,9 @@ def create_app():
     """Application factory pattern with enhanced error handling and logging"""
     app = Flask(__name__)
 
+    # Set development environment variables
+    os.environ.setdefault('DISABLE_RATE_LIMITING', 'true')  # Disable rate limiting for development
+
     # Load configuration
     config_class = get_config()
     app.config.from_object(config_class)
