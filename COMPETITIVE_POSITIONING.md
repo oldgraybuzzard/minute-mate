@@ -10,17 +10,19 @@ While competitors focus on expensive, niche solutions, BoardMinutes delivers pro
 
 ## 🔍 **Competitive Analysis**
 
-### **Primary Competitor: minute-mate.com**
+### **Three-Tier Competitive Landscape:**
 
-| Aspect | BoardMinutes | minute-mate.com |
-|--------|--------------|-----------------|
-| **Target Market** | All Professional Boards | HOAs Only |
-| **Starting Price** | Free | $39/month |
-| **Market Size** | Universal (Millions of boards) | Niche (HOAs only) |
-| **Complexity** | Simple & Professional | Complex HOA-specific |
-| **Setup Time** | Instant | Requires training |
-| **Use Cases** | Any board/committee | HOA governance only |
-| **Value Prop** | Professional minutes for everyone | HOA compliance specialist |
+| Aspect | BoardMinutes | OnBoard (Enterprise) | minute-mate.com (Niche) |
+|--------|--------------|---------------------|-------------------------|
+| **Target Market** | All Professional Boards | Enterprise Boards | HOAs Only |
+| **Starting Price** | Free | $1000s/month | $39/month |
+| **Market Position** | Accessible Professional | Enterprise Leader | Niche Specialist |
+| **Complexity** | Simple & Professional | Enterprise Platform | Complex HOA-specific |
+| **Setup Time** | Instant | Months (sales process) | Requires training |
+| **Use Cases** | Any board/committee | Full board lifecycle | HOA governance only |
+| **Value Prop** | Professional without complexity | Complete enterprise solution | HOA compliance specialist |
+| **Customer Base** | SMB to Mid-Market | Fortune 500, Universities | HOA communities |
+| **Sales Model** | Self-service + Support | Enterprise sales team | Direct sales |
 
 ---
 
@@ -38,10 +40,12 @@ While competitors focus on expensive, niche solutions, BoardMinutes delivers pro
 - 🤝 **Committee Meetings** - Any formal committee
 - 📊 **Shareholder Meetings** - Annual/quarterly meetings
 
-### **Market Size:**
+### **Market Size & Opportunity:**
 - **Total Addressable Market:** 2M+ professional boards in US
-- **minute-mate.com TAM:** ~350K HOAs in US
-- **BoardMinutes Advantage:** 5.7x larger addressable market
+- **OnBoard TAM:** ~50K enterprise boards (high-value, saturated)
+- **minute-mate.com TAM:** ~350K HOAs (niche market)
+- **BoardMinutes TAM:** 1.6M+ mid-market boards (underserved)
+- **Market Gap:** Massive underserved segment between enterprise and niche
 
 ---
 
