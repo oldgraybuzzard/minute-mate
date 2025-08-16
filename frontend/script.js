@@ -80,8 +80,8 @@ class MinuteMateApp {
         // Navigation elements
         this.newUploadBtns = document.querySelectorAll('.new-upload-btn, #error-new-upload-btn');
 
-        // Sections
-        this.sections = {
+        // Sections - filter out null elements to prevent errors on different pages
+        const allSections = {
             upload: document.getElementById('upload-section'),
             processing: document.getElementById('processing-section'),
             results: document.getElementById('results-section'),
@@ -92,13 +92,29 @@ class MinuteMateApp {
             settings: document.getElementById('settings-section')
         };
 
-        // Processing steps
-        this.steps = {
+        // Only include sections that actually exist on this page
+        this.sections = {};
+        Object.keys(allSections).forEach(key => {
+            if (allSections[key]) {
+                this.sections[key] = allSections[key];
+            }
+        });
+
+        // Processing steps - filter out null elements to prevent errors on different pages
+        const allSteps = {
             upload: document.getElementById('step-upload'),
             transcription: document.getElementById('step-transcription'),
             parsing: document.getElementById('step-parsing'),
             formatting: document.getElementById('step-formatting')
         };
+
+        // Only include steps that actually exist on this page
+        this.steps = {};
+        Object.keys(allSteps).forEach(key => {
+            if (allSteps[key]) {
+                this.steps[key] = allSteps[key];
+            }
+        });
 
         // Utility elements
         this.loadingOverlay = document.getElementById('loading-overlay');
@@ -917,11 +933,15 @@ class MinuteMateApp {
         this.resetTranscriptForm();
         this.showSection('upload');
 
-        // Reset all steps
+        // Reset all steps - add null checks to prevent errors on different pages
         Object.values(this.steps).forEach(step => {
-            step.classList.remove('active', 'completed', 'error');
-            const statusIcon = step.querySelector('.step-status i');
-            statusIcon.className = 'fas fa-clock';
+            if (step && step.classList) {
+                step.classList.remove('active', 'completed', 'error');
+                const statusIcon = step.querySelector('.step-status i');
+                if (statusIcon) {
+                    statusIcon.className = 'fas fa-clock';
+                }
+            }
         });
 
         // Reset progress
@@ -931,10 +951,13 @@ class MinuteMateApp {
     // UI utility methods
     showSection(sectionName) {
         Object.values(this.sections).forEach(section => {
-            section.classList.remove('active');
+            // Add null check to prevent errors when section doesn't exist
+            if (section && section.classList) {
+                section.classList.remove('active');
+            }
         });
-        
-        if (this.sections[sectionName]) {
+
+        if (this.sections[sectionName] && this.sections[sectionName].classList) {
             this.sections[sectionName].classList.add('active');
         }
     }
