@@ -1,12 +1,13 @@
-# 📋 BoardMinutes
+# 📋 MinuteMate
 
-**Professional AI-Powered Board Meeting Minutes**
+**Professional AI-Powered Meeting Minutes Generator**
 
-Transform your board meeting recordings into professional, compliant minutes with advanced AI intelligence. BoardMinutes is designed specifically for professional boards, committees, and governance meetings.
+Transform your meeting recordings into professional, compliant minutes with advanced AI intelligence. MinuteMate is designed for professional boards, committees, team meetings, and governance sessions with enterprise-grade features and comprehensive admin tools.
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/minutemate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Admin Panel](https://img.shields.io/badge/Admin-Panel-blue.svg)](#-admin-system)
 
 ---
 
@@ -36,11 +37,22 @@ Transform your board meeting recordings into professional, compliant minutes wit
 - **Preference Learning** for fonts, formatting, and structure
 - **Confidence-Based Improvements** that get better over time
 
-### 🔒 **Enterprise Security**
+### 🔒 **Enterprise Security & Admin**
+- **Comprehensive Admin System** with web interface and CLI tools
+- **User Management** with role-based access control
+- **Password Reset** functionality with secure token system
 - **Rate Limiting** to prevent abuse and ensure fair usage
 - **Input Validation** with comprehensive security checks
 - **Error Handling** with detailed logging and monitoring
 - **Production-Ready** with health checks and metrics
+
+### 👥 **User Management**
+- **Professional Admin Panel** with modern, responsive design
+- **CLI Admin Tools** for server management and user operations
+- **User Authentication** with secure session management
+- **Password Reset System** with email integration (development mode)
+- **User Profiles** with customizable preferences and settings
+- **Audit Logging** for security and compliance tracking
 
 ---
 
@@ -78,9 +90,23 @@ python run.py
 ```
 
 #### **Access the Application**
-- **Web Interface:** http://localhost:8080/frontend/
-- **API Documentation:** http://localhost:8080/api/docs/html
-- **Health Check:** http://localhost:8080/api/health
+- **Web Interface:** http://localhost:5000/frontend/
+- **Admin Panel:** http://localhost:5000/frontend/admin.html
+- **API Documentation:** http://localhost:5000/api/docs/html
+- **Health Check:** http://localhost:5000/api/health
+
+#### **Admin Setup**
+```bash
+# Create admin user account
+cd backend
+python3 create_user.py create admin admin@example.com password123 "Admin" "User"
+
+# Or use the CLI admin tool
+python3 admin_cli.py create admin admin@example.com --password password123 --admin
+
+# List all users
+python3 create_user.py list
+```
 
 ---
 
@@ -105,6 +131,61 @@ python run.py
 - Upload edited versions to teach preferences
 - System learns your formatting style
 - Future documents automatically personalized
+
+---
+
+## 🛡️ **Admin System**
+
+MinuteMate includes a comprehensive administration system for enterprise deployment and user management.
+
+### **🖥️ Web Admin Panel**
+Access the professional admin interface at `/frontend/admin.html`:
+
+- **User Management**: Create, edit, delete, and manage user accounts
+- **Password Reset**: Admin-initiated password resets for users
+- **System Monitoring**: Real-time system health and performance metrics
+- **Audit Logs**: Comprehensive logging for security and compliance
+- **Responsive Design**: Works perfectly on desktop, tablet, and mobile devices
+
+### **⚡ CLI Admin Tools**
+
+#### **User Creation Script** (`create_user.py`)
+```bash
+# Create a new user
+python3 create_user.py create username email@example.com password123 "First" "Last"
+
+# List all users
+python3 create_user.py list
+
+# Reset user password
+python3 create_user.py reset username newpassword123
+```
+
+#### **Advanced Admin CLI** (`admin_cli.py`)
+```bash
+# Create user with admin privileges
+python3 admin_cli.py create username email@example.com --password pass123 --admin
+
+# List all users with detailed information
+python3 admin_cli.py list
+
+# Reset user password interactively
+python3 admin_cli.py reset-password username
+```
+
+### **🔐 Security Features**
+- **Secure Password Hashing**: Uses Werkzeug's pbkdf2:sha256 for password security
+- **Session Management**: Secure user sessions with proper timeout handling
+- **Token-Based Password Reset**: Secure password reset with 1-hour expiration tokens
+- **Input Validation**: Comprehensive validation for all user inputs
+- **Rate Limiting**: Protection against brute force attacks
+
+### **📊 Admin Dashboard Features**
+- **User Statistics**: Total users, active sessions, and growth metrics
+- **System Health**: Server status, database size, and performance indicators
+- **Activity Logs**: Real-time monitoring of user activities and system events
+- **Responsive Tables**: Professional data tables with search and filtering
+- **Modern UI**: Clean, professional interface matching enterprise standards
 
 ---
 
@@ -195,6 +276,9 @@ See [Configuration Guide](docs/CONFIGURATION.md) for detailed settings.
 | [🔗 Integrations](docs/INTEGRATIONS.md) | Calendar and third-party integrations |
 | [🛡️ Security](docs/SECURITY.md) | Security features and best practices |
 | [🧠 AI Features](docs/AI_FEATURES.md) | AI capabilities and learning system |
+| [👥 Admin Guide](docs/ADMIN.md) | Admin panel and user management |
+| [🏗️ Architecture](docs/Architecture.md) | System architecture and design |
+| [🤝 Contributing](docs/CONTRIBUTING.md) | Development and contribution guide |
 
 ---
 
@@ -204,15 +288,37 @@ See [Configuration Guide](docs/CONFIGURATION.md) for detailed settings.
 ```
 minute-mate/
 ├── backend/                 # Flask API server
-│   ├── app.py              # Main application
-│   ├── models.py           # Database models
-│   ├── routes/             # API endpoints
-│   └── services/           # Business logic
+│   ├── app.py              # Main Flask application
+│   ├── models.py           # SQLAlchemy database models
+│   ├── auth_service.py     # Authentication and user management
+│   ├── auth_routes.py      # Authentication API endpoints
+│   ├── admin_cli.py        # Command-line admin tools
+│   ├── create_user.py      # Simple user creation script
+│   ├── migrate_db.py       # Database migration utilities
+│   ├── meeting_service.py  # Meeting processing logic
+│   ├── template_service.py # Template management
+│   ├── batch_service.py    # Batch processing system
+│   ├── calendar_service.py # Calendar integrations
+│   ├── document_*.py       # Document processing modules
+│   ├── modules/            # Core processing modules
+│   │   ├── transcriber.py  # Audio transcription
+│   │   ├── formatter.py    # Minutes formatting
+│   │   ├── exporter.py     # Document export
+│   │   └── comparator.py   # Document comparison
+│   └── config.py           # Configuration management
 ├── frontend/               # Web interface
-│   ├── index.html          # Main page
+│   ├── index.html          # Landing page
+│   ├── auth.html           # Login/registration
 │   ├── dashboard.html      # User dashboard
-│   └── assets/             # CSS, JS, images
-├── docs/                   # Documentation
+│   ├── admin.html          # Admin panel
+│   ├── admin.js            # Admin panel functionality
+│   ├── styles.css          # Comprehensive styling
+│   └── assets/             # Images and resources
+├── docs/                   # Comprehensive documentation
+│   ├── API.md              # API reference
+│   ├── CONFIGURATION.md    # Configuration guide
+│   ├── SECURITY.md         # Security documentation
+│   └── *.md                # Additional guides
 ├── requirements.txt        # Python dependencies
 └── railway.json           # Railway deployment config
 ```
