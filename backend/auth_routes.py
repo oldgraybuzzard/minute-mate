@@ -304,6 +304,169 @@ def save_user_preferences():
         db.session.rollback()
         return jsonify(create_response(False, "Failed to save preferences")), 500
 
+@auth_bp.route('/profile', methods=['GET'])
+@login_required
+def get_user_profile():
+    """Get user profile information"""
+    try:
+        user_data = current_user.to_dict()
+
+        return jsonify(create_response(
+            True,
+            "Profile retrieved",
+            {'user': user_data}
+        )), 200
+
+    except Exception as e:
+        logger.error(f"Get profile error: {str(e)}")
+        return jsonify(create_response(False, "Failed to get profile")), 500
+
+@auth_bp.route('/profile', methods=['POST'])
+@login_required
+def update_user_profile():
+    """Update user profile information"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify(create_response(False, "No profile data provided")), 400
+
+        # Update allowed fields
+        allowed_fields = ['first_name', 'last_name', 'email', 'username', 'organization', 'job_title']
+
+        for field in allowed_fields:
+            if field in data:
+                if field == 'email':
+                    # Check if email is already taken by another user
+                    existing_user = User.query.filter(
+                        User.email == data[field],
+                        User.id != current_user.id
+                    ).first()
+                    if existing_user:
+                        return jsonify(create_response(False, "Email already in use")), 400
+
+                if field == 'username':
+                    # Check if username is already taken by another user
+                    existing_user = User.query.filter(
+                        User.username == data[field],
+                        User.id != current_user.id
+                    ).first()
+                    if existing_user:
+                        return jsonify(create_response(False, "Username already in use")), 400
+
+                setattr(current_user, field, data[field])
+
+        db.session.commit()
+
+        return jsonify(create_response(
+            True,
+            "Profile updated successfully",
+            {'user': current_user.to_dict()}
+        )), 200
+
+    except Exception as e:
+        logger.error(f"Update profile error: {str(e)}")
+        db.session.rollback()
+        return jsonify(create_response(False, "Failed to update profile")), 500
+
+
+
+@auth_bp.route('/export-data', methods=['GET'])
+@login_required
+def export_user_data():
+    """Export all user data"""
+    try:
+        from models import Meeting
+        import json
+        from datetime import datetime
+
+        # Get all user meetings
+        meetings = Meeting.query.filter_by(user_id=current_user.id).all()
+
+        # Prepare export data
+        export_data = {
+            'user': current_user.to_dict(),
+            'export_date': datetime.utcnow().isoformat(),
+            'meetings': []
+        }
+
+        for meeting in meetings:
+            meeting_data = {
+                'id': meeting.id,
+                'title': meeting.title,
+                'status': meeting.status,
+                'created_at': meeting.created_at.isoformat(),
+                'updated_at': meeting.updated_at.isoformat(),
+                'duration': meeting.duration,
+                'transcript': meeting.transcript,
+                'summary': meeting.summary,
+                'action_items': meeting.action_items,
+                'key_decisions': meeting.key_decisions
+            }
+            export_data['meetings'].append(meeting_data)
+
+        # Create JSON response
+        response = jsonify(export_data)
+        response.headers['Content-Disposition'] = f'attachment; filename=minutemate_data_{current_user.username}_{datetime.now().strftime("%Y%m%d")}.json'
+        response.headers['Content-Type'] = 'application/json'
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Export data error: {str(e)}")
+        return jsonify(create_response(False, "Failed to export data")), 500
+
+@auth_bp.route('/delete-account', methods=['POST'])
+@login_required
+def delete_user_account():
+    """Delete user account and all associated data"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify(create_response(False, "No confirmation data provided")), 400
+
+        password = data.get('password')
+        confirmation = data.get('confirmation')
+
+        if not password or confirmation != 'DELETE':
+            return jsonify(create_response(False, "Invalid confirmation")), 400
+
+        # Verify password
+        if not current_user.check_password(password):
+            return jsonify(create_response(False, "Password is incorrect")), 400
+
+        # Delete all user meetings and associated files
+        from models import Meeting, UserPreference
+        import os
+
+        meetings = Meeting.query.filter_by(user_id=current_user.id).all()
+        for meeting in meetings:
+            # Delete associated files
+            if meeting.document_path and os.path.exists(meeting.document_path):
+                os.remove(meeting.document_path)
+            if meeting.audio_path and os.path.exists(meeting.audio_path):
+                os.remove(meeting.audio_path)
+            db.session.delete(meeting)
+
+        # Delete user preferences
+        preferences = UserPreference.query.filter_by(user_id=current_user.id).all()
+        for pref in preferences:
+            db.session.delete(pref)
+
+        # Delete user account
+        user_id = current_user.id
+        db.session.delete(current_user)
+        db.session.commit()
+
+        # Logout user
+        logout_user()
+
+        return jsonify(create_response(True, "Account deleted successfully")), 200
+
+    except Exception as e:
+        logger.error(f"Delete account error: {str(e)}")
+        db.session.rollback()
+        return jsonify(create_response(False, "Failed to delete account")), 500
+
 @auth_bp.route('/deactivate', methods=['POST'])
 @login_required
 def deactivate_account():

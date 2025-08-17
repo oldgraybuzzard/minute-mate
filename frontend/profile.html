@@ -3,63 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BoardMinutes - Profile & Settings</title>
-    <link rel="preload" href="images/logo.png" as="image">
+    <title>Profile & Settings - MinuteMate</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="profile-container">
+    <div class="app-container">
         <!-- Header -->
-        <header class="header">
+        <header class="app-header">
             <div class="header-content">
-                <div class="logo">
-                    <img src="images/logo.png" alt="BoardMinutes Logo" class="logo-image">
-                    <h1>BoardMinutes</h1>
-                </div>
-                <div class="header-controls">
+                <div class="header-left">
+                    <div class="logo">
+                        <i class="fas fa-microphone"></i>
+                        <span>MinuteMate</span>
+                    </div>
                     <nav class="main-nav">
-                        <a href="index.html" class="nav-link">
+                        <a href="/frontend/index.html" class="nav-link">
                             <i class="fas fa-upload"></i> Upload
                         </a>
-                        <a href="dashboard.html" class="nav-link">
+                        <a href="/frontend/dashboard.html" class="nav-link">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
-                        <a href="templates.html" class="nav-link">
-                            <i class="fas fa-file-alt"></i> Templates
-                        </a>
-                        <a href="profile.html" class="nav-link active">
-                            <i class="fas fa-user"></i> Profile
-                        </a>
-                        <a href="profile.html" class="nav-link">
-                            <i class="fas fa-cog"></i> Settings
+                        <a href="/frontend/profile.html" class="nav-link active">
+                            <i class="fas fa-user-cog"></i> Profile
                         </a>
                     </nav>
+                </div>
                     <div class="user-menu">
                         <button class="user-menu-toggle" id="user-menu-toggle">
                             <i class="fas fa-user-circle"></i>
-                            <span id="user-name">Loading...</span>
+                            <span id="header-user-name">Loading...</span>
                         </button>
                         <div class="user-dropdown" id="user-dropdown">
                             <div class="user-info">
-                                <strong id="user-full-name">Loading...</strong>
-                                <small id="user-email">Loading...</small>
+                                <strong id="header-user-full-name">Loading...</strong>
+                                <small id="header-user-email">Loading...</small>
                             </div>
                             <hr>
-                            <a href="/frontend/" class="dropdown-item">
-                                <i class="fas fa-plus"></i> New Meeting
-                            </a>
                             <a href="/frontend/dashboard.html" class="dropdown-item">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
-                            <a href="/frontend/templates.html" class="dropdown-item">
-                                <i class="fas fa-file-alt"></i> Templates
-                            </a>
-                            <a href="/frontend/calendar.html" class="dropdown-item">
-                                <i class="fas fa-calendar-alt"></i> Calendar
-                            </a>
-                            <a href="/frontend/batch.html" class="dropdown-item">
-                                <i class="fas fa-layer-group"></i> Batch Processing
+                            <a href="/frontend/profile.html" class="dropdown-item">
+                                <i class="fas fa-user-cog"></i> Profile & Settings
                             </a>
                             <hr>
                             <a href="#" class="dropdown-item" id="user-logout">
@@ -75,30 +60,46 @@
         </header>
 
         <!-- Main Content -->
-        <main class="profile-main">
-            <!-- Profile Header -->
-            <div class="profile-header">
-                <div class="profile-title">
-                    <h2><i class="fas fa-user-cog"></i> Profile & Settings</h2>
-                    <p>Manage your account information and application preferences</p>
+        <main class="main-content">
+            <div class="profile-container">
+                <!-- Profile Header -->
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <div class="avatar-circle">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <button class="btn secondary small" id="change-avatar">
+                            <i class="fas fa-camera"></i> Change Photo
+                        </button>
+                    </div>
+                    <div class="profile-info">
+                        <h1 id="profile-name">Loading...</h1>
+                        <p id="profile-email">Loading...</p>
+                        <p class="profile-meta">
+                            <span><i class="fas fa-calendar"></i> Member since <span id="member-since">Loading...</span></span>
+                            <span><i class="fas fa-file-alt"></i> <span id="total-meetings">0</span> meetings processed</span>
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Profile Tabs -->
-            <div class="profile-tabs">
-                <button class="tab-button active" data-tab="profile">
-                    <i class="fas fa-user"></i> Profile
-                </button>
-                <button class="tab-button" data-tab="preferences">
-                    <i class="fas fa-cog"></i> Preferences
-                </button>
-                <button class="tab-button" data-tab="security">
-                    <i class="fas fa-shield-alt"></i> Security
-                </button>
-                <button class="tab-button" data-tab="data">
-                    <i class="fas fa-database"></i> Data
-                </button>
-            </div>
+                <!-- Profile Tabs -->
+                <div class="profile-tabs">
+                    <button class="tab-button active" data-tab="account">
+                        <i class="fas fa-user"></i> Account Information
+                    </button>
+                    <button class="tab-button" data-tab="security">
+                        <i class="fas fa-shield-alt"></i> Security
+                    </button>
+                    <button class="tab-button" data-tab="preferences">
+                        <i class="fas fa-sliders-h"></i> Preferences
+                    </button>
+                    <button class="tab-button" data-tab="notifications">
+                        <i class="fas fa-bell"></i> Notifications
+                    </button>
+                    <button class="tab-button" data-tab="data">
+                        <i class="fas fa-database"></i> Data & Privacy
+                    </button>
+                </div>
 
             <!-- Tab Content -->
             <div class="tab-content">
