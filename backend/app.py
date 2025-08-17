@@ -350,11 +350,11 @@ def process_transcript_text(transcript_text, job_id, form_data):
         )
 
         # Create Meeting record in database immediately
-        from models import Meeting, db, User
+        from models import Meeting, db
         from datetime import datetime, timezone
 
-        # Get user ID - use current_user if authenticated, otherwise use first available user
-        user_id = current_user.id if current_user and current_user.is_authenticated else User.query.first().id
+        # Use authenticated user (login_required decorator ensures current_user is authenticated)
+        user_id = current_user.id
 
         meeting = Meeting(
             user_id=user_id,
@@ -476,6 +476,31 @@ def process_transcript_file(file, job_id, form_data, storage_result):
 
         # File is already stored and job is already created, just use the storage result
 
+        # Create Meeting record in database immediately
+        from models import Meeting, db
+        from datetime import datetime, timezone
+
+        # Use authenticated user (login_required decorator ensures current_user is authenticated)
+        user_id = current_user.id
+
+        meeting = Meeting(
+            user_id=user_id,
+            title=f'Processing {file.filename}...',
+            description=f"Meeting being processed from file upload: {file.filename}",
+            meeting_date=datetime.now(timezone.utc),
+            original_filename=file.filename,
+            file_type=file.content_type,
+            file_size=file.content_length,
+            job_id=job_id,
+            status='processing',
+            transcript=None  # Will be set after file processing
+        )
+
+        db.session.add(meeting)
+        db.session.commit()
+        meeting_id = meeting.id
+        logger.info(f"Created Meeting record {meeting_id} for job {job_id}")
+
         # Start processing in background
         def process_transcript_file_background():
             try:
@@ -508,28 +533,18 @@ def process_transcript_file(file, job_id, form_data, storage_result):
                     from models import Meeting, db, User
                     from datetime import datetime, timezone
 
-                    # Get user ID - use current_user if authenticated, otherwise use first available user
-                    user_id = current_user.id if current_user and current_user.is_authenticated else User.query.first().id
-
-                    meeting_info = meeting_minutes.get('meeting_info', {})
-                    meeting = Meeting(
-                        user_id=user_id,
-                        title=meeting_info.get('title', f"Meeting - {file.filename}"),
-                        description=f"Meeting processed from file upload: {file.filename}",
-                        meeting_date=datetime.now(timezone.utc),
-                        original_filename=file.filename,
-                        file_type=file.content_type,
-                        file_size=len(transcript_text),
-                        job_id=job_id,
-                        status='completed',
-                        transcript=transcript_text,
-                        attendees=meeting_minutes.get('attendees', []),
-                        agenda_items=meeting_minutes.get('agenda_items', []),
-                        motions=meeting_minutes.get('motions', []),
-                        action_items=meeting_minutes.get('action_items', []),
-                        key_decisions=meeting_minutes.get('key_decisions', []),
-                        processed_at=datetime.now(timezone.utc)
-                    )
+                    meeting = Meeting.query.get(meeting_id)
+                    if meeting:
+                        meeting_info = meeting_minutes.get('meeting_info', {})
+                        meeting.title = meeting_info.get('title', f"Meeting - {file.filename}")
+                        meeting.status = 'completed'
+                        meeting.transcript = transcript_text
+                        meeting.file_size = len(transcript_text)
+                        meeting.attendees = meeting_minutes.get('attendees', [])
+                        meeting.agenda_items = meeting_minutes.get('agenda_items', [])
+                        meeting.motions = meeting_minutes.get('motions', [])
+                        meeting.action_items = meeting_minutes.get('action_items', [])
+                        meeting.key_decisions = meeting_minutes.get('key_decisions', [])
 
                     # Set file paths if available
                     if results_path and os.path.exists(results_path):
@@ -546,14 +561,23 @@ def process_transcript_file(file, job_id, form_data, storage_result):
                         if os.path.exists(docx_path):
                             meeting.docx_file_path = docx_path
 
-                    db.session.add(meeting)
-                    db.session.commit()
-                    logger.info(f"Created Meeting record {meeting.id} for job {job_id}")
+                        db.session.commit()
+                        logger.info(f"Updated Meeting record {meeting_id} for job {job_id}")
 
                 job_tracker.update_job(job_id, status=JobStatus.COMPLETED, message='Meeting minutes generated successfully', result_file=results_path)
 
             except Exception as e:
                 logger.error(f"Transcript file processing failed for job {job_id}: {str(e)}")
+                # Update meeting status to failed
+                try:
+                    with app.app_context():
+                        from models import Meeting, db
+                        meeting = Meeting.query.get(meeting_id)
+                        if meeting:
+                            meeting.status = 'failed'
+                            db.session.commit()
+                except:
+                    pass
                 job_tracker.update_job(job_id, status=JobStatus.FAILED, error=f'Processing failed: {str(e)}')
 
         # Start background processing
@@ -764,6 +788,7 @@ def serve_frontend_files(filename):
     return "File not found", 404
 
 @app.route('/api/upload', methods=['POST'])
+@login_required
 def upload_file():
     """Handle file upload for audio/video/transcript processing with enhanced validation"""
     logger = logging.getLogger(__name__)
@@ -912,6 +937,7 @@ def upload_file():
         raise
 
 @app.route('/api/upload-url', methods=['POST'])
+@login_required
 def upload_from_url():
     """Handle file upload from URL (e.g., Zoom recordings, Google Drive, etc.)"""
     logger = logging.getLogger(__name__)

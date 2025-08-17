@@ -542,7 +542,8 @@ class MinuteMateApp {
 
             const response = await fetch(`${this.apiBaseUrl}/api/upload`, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'include'
             });
 
             const result = await response.json();
@@ -586,7 +587,8 @@ class MinuteMateApp {
 
             const response = await fetch(`${this.apiBaseUrl}/api/upload`, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'include'
             });
 
             const result = await response.json();
@@ -626,6 +628,7 @@ class MinuteMateApp {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(requestData)
             });
 
@@ -658,7 +661,9 @@ class MinuteMateApp {
     async startPolling() {
         this.pollInterval = setInterval(async () => {
             try {
-                const response = await fetch(`${this.apiBaseUrl}/api/status/${this.currentJobId}`);
+                const response = await fetch(`${this.apiBaseUrl}/api/status/${this.currentJobId}`, {
+                    credentials: 'include'
+                });
                 const result = await response.json();
 
                 if (result.success) {
@@ -788,7 +793,9 @@ class MinuteMateApp {
 
             // For now, all formats use the same endpoint since backend prioritizes formats
             // In the future, we could add format-specific endpoints
-            const response = await fetch(`${this.apiBaseUrl}/api/download/${this.currentJobId}`);
+            const response = await fetch(`${this.apiBaseUrl}/api/download/${this.currentJobId}`, {
+                credentials: 'include'
+            });
 
             if (response.ok) {
                 const blob = await response.blob();
@@ -834,7 +841,9 @@ class MinuteMateApp {
             this.showLoading('Loading preview...');
 
             // Fetch the HTML preview from the server
-            const response = await fetch(`${this.apiBaseUrl}/api/preview/${this.currentJobId}`);
+            const response = await fetch(`${this.apiBaseUrl}/api/preview/${this.currentJobId}`, {
+                credentials: 'include'
+            });
 
             if (response.ok) {
                 const blob = await response.blob();
