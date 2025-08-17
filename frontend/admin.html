@@ -17,13 +17,13 @@
                 </div>
                 <nav class="admin-menu">
                     <button class="admin-tab active" data-tab="users">
-                        <i class="fas fa-users"></i> Users
+                        <i class="fas fa-users"></i> <span>Users</span>
                     </button>
                     <button class="admin-tab" data-tab="system">
-                        <i class="fas fa-cogs"></i> System
+                        <i class="fas fa-cogs"></i> <span>System</span>
                     </button>
                     <button class="admin-tab" data-tab="logs">
-                        <i class="fas fa-file-alt"></i> Logs
+                        <i class="fas fa-file-alt"></i> <span>Logs</span>
                     </button>
                 </nav>
                 <div class="admin-actions">
@@ -47,9 +47,11 @@
 
                     <div class="admin-filters">
                         <div class="filter-group">
-                            <input type="text" id="user-search" placeholder="Search users..." class="search-input">
+                            <label for="user-search">Search Users</label>
+                            <input type="text" id="user-search" placeholder="Search by name, email, or username..." class="search-input">
                         </div>
                         <div class="filter-group">
+                            <label for="user-status-filter">Status Filter</label>
                             <select id="user-status-filter">
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
@@ -57,6 +59,7 @@
                             </select>
                         </div>
                         <div class="filter-group">
+                            <label>&nbsp;</label>
                             <button class="btn secondary" id="refresh-users">
                                 <i class="fas fa-sync-alt"></i> Refresh
                             </button>
