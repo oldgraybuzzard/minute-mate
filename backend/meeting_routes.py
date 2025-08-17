@@ -297,9 +297,9 @@ def get_meetings_list():
         elif sort_by == 'title_desc':
             query = query.order_by(desc(Meeting.title))
         elif sort_by == 'duration_desc':
-            query = query.order_by(desc(Meeting.duration))
+            query = query.order_by(desc(Meeting.duration_minutes))
         elif sort_by == 'duration_asc':
-            query = query.order_by(asc(Meeting.duration))
+            query = query.order_by(asc(Meeting.duration_minutes))
         else:
             query = query.order_by(desc(Meeting.created_at))
 
@@ -321,17 +321,28 @@ def get_meetings_list():
                 speakers = set(re.findall(r'^([A-Z][a-z]+ [A-Z][a-z]+):', meeting.transcript, re.MULTILINE))
                 attendees_count = len(speakers) if speakers else None
 
+            # Format duration for display
+            duration_display = None
+            if meeting.duration_minutes:
+                if meeting.duration_minutes >= 60:
+                    hours = meeting.duration_minutes // 60
+                    minutes = meeting.duration_minutes % 60
+                    duration_display = f"{hours}h {minutes}m" if minutes > 0 else f"{hours}h"
+                else:
+                    duration_display = f"{meeting.duration_minutes}m"
+
             meetings_data.append({
                 'id': meeting.id,
                 'title': meeting.title,
                 'status': meeting.status,
                 'created_at': meeting.created_at.isoformat(),
                 'updated_at': meeting.updated_at.isoformat(),
-                'duration': meeting.duration,
+                'duration': duration_display,
+                'duration_minutes': meeting.duration_minutes,
                 'attendees_count': attendees_count,
                 'has_transcript': bool(meeting.transcript),
-                'has_summary': bool(meeting.summary),
-                'has_document': bool(meeting.document_path)
+                'has_summary': bool(meeting.action_items or meeting.key_decisions),
+                'has_document': bool(meeting.docx_file_path)
             })
 
         # Calculate pagination info
@@ -372,11 +383,11 @@ def download_meeting(meeting_id):
         if not meeting:
             return jsonify(create_response(False, "Meeting not found")), 404
 
-        if not meeting.document_path or not os.path.exists(meeting.document_path):
+        if not meeting.docx_file_path or not os.path.exists(meeting.docx_file_path):
             return jsonify(create_response(False, "Document not available")), 404
 
         return send_file(
-            meeting.document_path,
+            meeting.docx_file_path,
             as_attachment=True,
             download_name=f"meeting-{meeting.title or meeting.id}.docx",
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
