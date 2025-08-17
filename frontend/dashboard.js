@@ -12,6 +12,7 @@ class DashboardApp {
         this.setupEventListeners();
         this.initializeTheme();
         this.checkAuthentication();
+        this.setupRealtimeUpdates();
     }
 
     initializeElements() {
@@ -142,15 +143,13 @@ class DashboardApp {
         this.prevPageBtn.addEventListener('click', this.previousPage.bind(this));
         this.nextPageBtn.addEventListener('click', this.nextPage.bind(this));
 
-        // Search input with debounce
-        let searchTimeout;
-        this.searchInput.addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                this.currentFilters.search = this.searchInput.value;
-                this.applyFilters();
-            }, 500);
-        });
+        // Search input with enhanced debounce
+        this.searchInput.addEventListener('input', window.loadingManager.debounce(() => {
+            this.currentFilters.search = this.searchInput.value;
+            // Clear cache when search changes
+            window.loadingManager.clearCache('meetings-');
+            this.applyFilters();
+        }, 300));
 
         // Filter change events
         this.statusFilter.addEventListener('change', () => {
@@ -269,29 +268,27 @@ class DashboardApp {
 
     async loadDashboardData() {
         try {
-            this.showLoading('Loading dashboard...');
-            
-            const response = await fetch(`${this.apiBaseUrl}/api/meetings/dashboard`, {
-                credentials: 'include'
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    this.updateStatistics(result.data.statistics);
-                    // Load meetings with enhanced filtering
-                    this.loadMeetings();
-                } else {
-                    throw new Error(result.message);
+            // Use enhanced loading manager with caching
+            const result = await window.loadingManager.fetchWithCache(
+                `${this.apiBaseUrl}/api/meetings/dashboard`,
+                {
+                    credentials: 'include',
+                    loadingMessage: 'Loading dashboard...',
+                    cache: true,
+                    cacheDuration: 2 * 60 * 1000 // 2 minutes cache
                 }
+            );
+
+            if (result.success) {
+                this.updateStatistics(result.data.statistics);
+                // Load meetings with enhanced filtering
+                this.loadMeetings();
             } else {
-                throw new Error('Failed to load dashboard data');
+                throw new Error(result.message);
             }
         } catch (error) {
             console.error('Dashboard load error:', error);
-            this.showToast('Failed to load dashboard data', 'error');
-        } finally {
-            this.hideLoading();
+            window.loadingManager.showToast('Failed to load dashboard data', 'error');
         }
     }
 
@@ -805,7 +802,8 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
 
     async loadMeetings() {
         try {
-            this.showLoading('Loading meetings...');
+            // Show skeleton loading for better UX
+            this.showSkeletonLoading();
 
             // Build query parameters
             const params = new URLSearchParams({
@@ -817,25 +815,30 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
                 sort_by: this.currentFilters.sortBy
             });
 
-            const response = await fetch(`${this.apiBaseUrl}/api/meetings/list?${params}`, {
-                credentials: 'include'
-            });
+            const cacheKey = `meetings-${params.toString()}`;
 
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    this.updateMeetingsList(result.data.meetings);
-                    this.updatePagination(result.data.pagination);
-                    this.updateResultsInfo(result.data.pagination);
-                } else {
-                    throw new Error(result.message);
+            // Use enhanced loading manager with caching
+            const result = await window.loadingManager.fetchWithCache(
+                `${this.apiBaseUrl}/api/meetings/list?${params}`,
+                {
+                    credentials: 'include',
+                    cache: true,
+                    cacheDuration: 1 * 60 * 1000, // 1 minute cache for meetings
+                    showLoading: false, // We're using skeleton loading instead
+                    loadingId: cacheKey
                 }
+            );
+
+            if (result.success) {
+                this.updateMeetingsList(result.data.meetings);
+                this.updatePagination(result.data.pagination);
+                this.updateResultsInfo(result.data.pagination);
             } else {
-                throw new Error('Failed to load meetings');
+                throw new Error(result.message);
             }
         } catch (error) {
             console.error('Error loading meetings:', error);
-            this.showToast('Failed to load meetings', 'error');
+            window.loadingManager.showToast('Failed to load meetings', 'error');
             this.recentMeetings.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -843,9 +846,29 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
                     <p>Please try refreshing the page.</p>
                 </div>
             `;
-        } finally {
-            this.hideLoading();
         }
+    }
+
+    showSkeletonLoading() {
+        const skeletonHtml = Array(6).fill().map(() => `
+            <div class="meeting-card skeleton-card">
+                <div class="meeting-header">
+                    <div class="skeleton skeleton-text" style="width: 70%; height: 1.2rem;"></div>
+                    <div class="skeleton skeleton-text" style="width: 80px; height: 1rem;"></div>
+                </div>
+                <div class="meeting-meta">
+                    <div class="skeleton skeleton-text" style="width: 120px; height: 0.9rem;"></div>
+                    <div class="skeleton skeleton-text" style="width: 80px; height: 0.9rem;"></div>
+                </div>
+                <div class="skeleton skeleton-text" style="width: 90%; height: 0.9rem; margin: 10px 0;"></div>
+                <div class="meeting-actions">
+                    <div class="skeleton skeleton-text" style="width: 80px; height: 32px; border-radius: 4px;"></div>
+                    <div class="skeleton skeleton-text" style="width: 60px; height: 32px; border-radius: 4px;"></div>
+                </div>
+            </div>
+        `).join('');
+
+        this.recentMeetings.innerHTML = skeletonHtml;
     }
 
     updateMeetingsList(meetings) {
@@ -1370,6 +1393,134 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
             this.showToast('Failed to send email', 'error');
         } finally {
             this.hideLoading();
+        }
+    }
+
+    setupRealtimeUpdates() {
+        // Subscribe to global meeting updates
+        window.realtimeManager.subscribeToGlobalUpdates((data) => {
+            this.handleRealtimeUpdate(data);
+        });
+
+        // Request notification permission
+        window.realtimeManager.requestNotificationPermission();
+
+        // Handle online/offline status
+        window.realtimeManager.on('connection:online', () => {
+            // Refresh data when coming back online
+            this.loadDashboardData();
+            window.realtimeManager.processOfflineQueue();
+        });
+    }
+
+    handleRealtimeUpdate(data) {
+        switch (data.type) {
+            case 'meeting:completed':
+                this.handleMeetingCompleted(data);
+                break;
+            case 'meeting:created':
+                this.handleMeetingCreated(data);
+                break;
+            case 'meeting:deleted':
+                this.handleMeetingDeleted(data);
+                break;
+            case 'meeting:progress':
+                this.handleMeetingProgress(data);
+                break;
+        }
+    }
+
+    handleMeetingCompleted(data) {
+        // Show notification
+        window.realtimeManager.showLiveNotification(
+            'Meeting Completed',
+            `${data.meeting.title} has been processed successfully`,
+            'success'
+        );
+
+        // Update the meeting card if visible
+        const meetingCard = document.querySelector(`[data-meeting-id="${data.meeting.id}"]`);
+        if (meetingCard) {
+            const statusElement = meetingCard.querySelector('.meeting-status');
+            if (statusElement) {
+                statusElement.textContent = 'completed';
+                statusElement.className = 'meeting-status status-completed';
+            }
+        }
+
+        // Refresh dashboard stats
+        this.loadDashboardData();
+
+        // Clear cache to ensure fresh data
+        window.loadingManager.clearCache('meetings-');
+    }
+
+    handleMeetingCreated(data) {
+        // Show notification
+        window.realtimeManager.showLiveNotification(
+            'New Meeting',
+            `${data.meeting.title} has been created`,
+            'info'
+        );
+
+        // Refresh meetings list
+        this.loadMeetings();
+    }
+
+    handleMeetingDeleted(data) {
+        // Remove meeting card from UI
+        const meetingCard = document.querySelector(`[data-meeting-id="${data.meetingId}"]`);
+        if (meetingCard) {
+            meetingCard.style.transition = 'all 0.3s ease';
+            meetingCard.style.opacity = '0';
+            meetingCard.style.transform = 'translateX(-100%)';
+            setTimeout(() => {
+                meetingCard.remove();
+            }, 300);
+        }
+
+        // Update stats
+        this.loadDashboardData();
+    }
+
+    handleMeetingProgress(data) {
+        // Update progress if meeting card is visible
+        const meetingCard = document.querySelector(`[data-meeting-id="${data.meetingId}"]`);
+        if (meetingCard) {
+            let progressBar = meetingCard.querySelector('.progress-bar');
+            if (!progressBar) {
+                // Create progress bar if it doesn't exist
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'meeting-progress';
+                progressContainer.innerHTML = `
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">${Math.round(data.progress)}%</div>
+                `;
+                meetingCard.appendChild(progressContainer);
+                progressBar = progressContainer.querySelector('.progress-bar');
+            }
+
+            const progressFill = progressBar.querySelector('.progress-fill');
+            const progressText = meetingCard.querySelector('.progress-text');
+
+            if (progressFill) {
+                progressFill.style.width = `${data.progress}%`;
+            }
+            if (progressText) {
+                progressText.textContent = `${Math.round(data.progress)}%`;
+            }
+
+            // Remove progress bar when complete
+            if (data.progress >= 100) {
+                setTimeout(() => {
+                    const progressContainer = meetingCard.querySelector('.meeting-progress');
+                    if (progressContainer) {
+                        progressContainer.remove();
+                    }
+                }, 2000);
+            }
         }
     }
 }

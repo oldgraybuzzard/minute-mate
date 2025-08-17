@@ -6760,3 +6760,427 @@ body {
         margin-bottom: 0;
     }
 }
+
+/* Enhanced Loading States & Performance Optimizations */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.loading-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 300px;
+    width: 90%;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--gray-200);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.loading-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 20px;
+}
+
+.loading-progress {
+    display: none;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+/* Inline Loading States */
+.inline-loader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--gray-50);
+    border-radius: 6px;
+    margin: 10px 0;
+}
+
+.inline-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--gray-300);
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.inline-text {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+}
+
+/* Enhanced Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.toast {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 4px solid var(--primary-color);
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-success {
+    border-left-color: var(--success-color);
+}
+
+.toast-error {
+    border-left-color: var(--error-color);
+}
+
+.toast-warning {
+    border-left-color: var(--warning-color);
+}
+
+.toast-info {
+    border-left-color: var(--info-color);
+}
+
+.toast-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.toast-success .toast-icon {
+    color: var(--success-color);
+}
+
+.toast-error .toast-icon {
+    color: var(--error-color);
+}
+
+.toast-warning .toast-icon {
+    color: var(--warning-color);
+}
+
+.toast-info .toast-icon {
+    color: var(--info-color);
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--gray-800);
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--gray-400);
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+/* Skeleton Loading States */
+.skeleton {
+    background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.skeleton-text {
+    height: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-text:last-child {
+    margin-bottom: 0;
+    width: 60%;
+}
+
+.skeleton-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.skeleton-card {
+    height: 200px;
+    border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Lazy Loading Images */
+img.lazy {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+img.lazy.loaded {
+    opacity: 1;
+}
+
+/* Performance Optimizations */
+.gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+.smooth-scroll {
+    scroll-behavior: smooth;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .loading-spinner,
+    .inline-spinner {
+        animation: none;
+    }
+
+    .skeleton {
+        animation: none;
+        background: var(--gray-200);
+    }
+
+    .toast,
+    .loading-overlay {
+        transition: none;
+    }
+}
+
+/* Dark Mode Support for Loading States */
+[data-theme="dark"] .loading-content {
+    background: var(--gray-100);
+}
+
+[data-theme="dark"] .loading-text {
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .inline-loader {
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .inline-text {
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .toast {
+    background: var(--gray-100);
+}
+
+[data-theme="dark"] .toast-message {
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .toast-close:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+[data-theme="dark"] .skeleton {
+    background: linear-gradient(90deg, var(--gray-300) 25%, var(--gray-200) 50%, var(--gray-300) 75%);
+    background-size: 200% 100%;
+}
+
+/* Responsive Design for Loading States */
+@media (max-width: 768px) {
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+
+    .toast {
+        padding: 12px 15px;
+        font-size: 0.9rem;
+    }
+
+    .loading-content {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .loading-text {
+        font-size: 1rem;
+    }
+}
+
+/* Real-time Progress Indicators */
+.meeting-progress {
+    margin-top: 15px;
+    padding: 10px;
+    background: var(--gray-50);
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.meeting-progress .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.meeting-progress .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.meeting-progress .progress-text {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Real-time Status Updates */
+.status-processing {
+    background: var(--warning-color) !important;
+    animation: pulse 2s infinite;
+}
+
+.status-uploading {
+    background: var(--info-color) !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Connection Status Indicator */
+.connection-status {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--error-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    z-index: 10001;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.connection-status.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.connection-status.online {
+    background: var(--success-color);
+}
+
+.connection-status.offline {
+    background: var(--error-color);
+}
+
+/* Dark mode support for real-time features */
+[data-theme="dark"] .meeting-progress {
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .meeting-progress .progress-text {
+    color: var(--gray-700);
+}
