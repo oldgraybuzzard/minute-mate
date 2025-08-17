@@ -14,6 +14,7 @@ class MinuteMateApp {
         this.initializeElements();
         this.bindEvents();
         this.checkSystemHealth();
+        this.loadUserPreferences();
     }
 
     initializeElements() {
@@ -71,6 +72,15 @@ class MinuteMateApp {
         this.viewPreviewBtn = document.getElementById('view-preview');
         this.reviewBtn = document.getElementById('review-btn');
         this.themeToggle = document.getElementById('theme-toggle');
+
+        // User menu elements
+        this.userMenu = document.getElementById('user-menu');
+        this.userMenuToggle = document.getElementById('user-menu-toggle');
+        this.userDropdown = document.getElementById('user-dropdown');
+        this.userName = document.getElementById('user-name');
+        this.userFullName = document.getElementById('user-full-name');
+        this.userEmail = document.getElementById('user-email');
+        this.userLogout = document.getElementById('user-logout');
 
         // Error elements
         this.errorText = document.getElementById('error-text');
@@ -170,6 +180,29 @@ class MinuteMateApp {
 
         // Theme toggle
         this.themeToggle.addEventListener('click', this.toggleTheme.bind(this));
+
+        // User menu events
+        if (this.userMenuToggle) {
+            this.userMenuToggle.addEventListener('click', () => {
+                this.userDropdown.classList.toggle('show');
+            });
+        }
+
+        if (this.userLogout) {
+            this.userLogout.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.logout();
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (this.userMenuToggle && this.userDropdown &&
+                !this.userMenuToggle.contains(e.target) &&
+                !this.userDropdown.contains(e.target)) {
+                this.userDropdown.classList.remove('show');
+            }
+        });
 
         // Error events
         this.retryBtn.addEventListener('click', this.retryProcessing.bind(this));
@@ -1417,6 +1450,102 @@ class MinuteMateApp {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             window.location.href = '/frontend/auth.html';
+        }
+    }
+
+    async loadUserPreferences() {
+        try {
+            // First check if user is authenticated
+            const authResponse = await fetch(`${this.apiBaseUrl}/api/auth/check`, {
+                credentials: 'include'
+            });
+
+            if (authResponse.ok) {
+                const authResult = await authResponse.json();
+                if (authResult.success) {
+                    // User is authenticated, show user menu and load preferences
+                    this.showUserInfo(authResult.data.user);
+
+                    // Load user preferences
+                    const prefResponse = await fetch(`${this.apiBaseUrl}/api/auth/preferences`, {
+                        credentials: 'include'
+                    });
+
+                    if (prefResponse.ok) {
+                        const prefResult = await prefResponse.json();
+                        if (prefResult.success) {
+                            this.applyUserPreferences(prefResult.data.preferences);
+                        } else {
+                            this.applyUserPreferences({});
+                        }
+                    } else {
+                        this.applyUserPreferences({});
+                    }
+                } else {
+                    // User not authenticated, hide user menu
+                    this.hideUserMenu();
+                    this.applyUserPreferences({});
+                }
+            } else {
+                // User not authenticated, hide user menu
+                this.hideUserMenu();
+                this.applyUserPreferences({});
+            }
+        } catch (error) {
+            console.log('Could not load user preferences, using defaults:', error);
+            this.hideUserMenu();
+            this.applyUserPreferences({});
+        }
+    }
+
+    showUserInfo(user) {
+        if (this.userMenu) {
+            this.userMenu.style.display = 'block';
+            if (this.userName) this.userName.textContent = user.first_name || user.username;
+            if (this.userFullName) this.userFullName.textContent = user.full_name || `${user.first_name} ${user.last_name}`;
+            if (this.userEmail) this.userEmail.textContent = user.email;
+        }
+    }
+
+    hideUserMenu() {
+        if (this.userMenu) {
+            this.userMenu.style.display = 'none';
+        }
+    }
+
+    applyUserPreferences(preferences) {
+        // Apply default language preference
+        if (preferences.meeting_default_language && this.languageSelect) {
+            this.languageSelect.value = preferences.meeting_default_language;
+        }
+
+        // Apply default template preference
+        if (preferences.meeting_default_template && this.formatSelect) {
+            // Map template names to format select values
+            const templateMapping = {
+                'professional': 'corporate',
+                'formal': 'roberts_rules',
+                'casual': 'informal',
+                'academic': 'roberts_rules'
+            };
+
+            const formatValue = templateMapping[preferences.meeting_default_template] || 'roberts_rules';
+            this.formatSelect.value = formatValue;
+        }
+
+        // Apply theme preference if available
+        if (preferences.user_theme) {
+            this.applyTheme(preferences.user_theme);
+        }
+    }
+
+    applyTheme(theme) {
+        if (theme === 'auto') {
+            // Use system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.body.classList.toggle('dark-theme', prefersDark);
+        } else {
+            document.body.classList.toggle('dark-theme', theme === 'dark');
         }
     }
 }
