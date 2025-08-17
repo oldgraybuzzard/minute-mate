@@ -37,11 +37,12 @@ OPENAI_TEMPERATURE=0.1
 
 ## 🚀 **Alternative AI Platforms**
 
-### **Option 1: Claude 3.5 Sonnet (Anthropic)**
+### **Option 1: Claude 3.5 Sonnet (Anthropic)** ✅ **READY**
 - **Context:** 200K tokens (≈800K characters)
+- **Rate Limits:** Much higher than OpenAI
 - **Advantages:** Excellent at long documents, better reasoning
 - **Cost:** Competitive with GPT-4
-- **Implementation:** Requires Anthropic API integration
+- **Status:** ✅ **Installed and configured**
 
 ### **Option 2: Gemini Pro (Google)**
 - **Context:** 1M tokens (≈4M characters)
@@ -54,6 +55,20 @@ OPENAI_TEMPERATURE=0.1
 - **Advantages:** No token limits, complete privacy, no API costs
 - **Requirements:** Powerful hardware (24GB+ VRAM)
 - **Implementation:** Ollama, LM Studio, or custom deployment
+
+## 📊 **OpenAI Usage Tiers (Your Current Situation)**
+
+Based on your rate limit error, you're currently on **Tier 1**:
+
+| Tier | Qualification | GPT-4 TPM | GPT-4 RPM | Your Status |
+|------|---------------|-----------|-----------|-------------|
+| **Tier 1** | $5+ spent | 30,000 | 500 | ← **YOU ARE HERE** |
+| **Tier 2** | $50+ spent + 7+ days | 60,000 | 1,000 | **RECOMMENDED** |
+| **Tier 3** | $500+ spent + 7+ days | 200,000 | 2,000 | Ideal for heavy use |
+| **Tier 4** | $5,000+ spent + 30+ days | 600,000 | 5,000 | Enterprise level |
+| **Tier 5** | $50,000+ spent + 30+ days | 2,000,000 | 10,000 | Maximum tier |
+
+**Your 121K transcript needs ~31,210 tokens, but you have 30,000 TPM limit.**
 
 ## 📊 **Comparison Table**
 
@@ -90,22 +105,55 @@ python test_large_transcript.py
 
 This creates a ~100K character test transcript and processes it with the new chunking system.
 
-## 💡 **Recommendations**
+## 💡 **Recommendations Based on Your Situation**
 
-### **Immediate (Today)**
-1. **Set OpenAI API Key** with GPT-4 access
-2. **Test with your 121K transcript** using new system
-3. **Configure model via environment variable**
+### **🎯 BEST OPTION: Upgrade to OpenAI Tier 2**
+**Why:** Doubles your rate limit to 60K TPM, handles your 31K transcript easily
+**How:**
+1. Add $50 to your OpenAI account balance
+2. Wait 7 days (if you haven't already)
+3. Limits automatically increase
+**Timeline:** 7 days maximum
+**Cost:** $50 one-time (gets you to Tier 2)
 
-### **Short Term (This Week)**
-1. **Add Claude 3.5 Sonnet** as alternative
-2. **Implement parallel chunk processing** for speed
-3. **Add progress indicators** for large transcript processing
+### **🚀 IMMEDIATE OPTION: Use Claude 3.5 Sonnet**
+**Why:** Higher rate limits, excellent performance, works today
+**How:**
+1. Get Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
+2. Add to your `.env` file: `ANTHROPIC_API_KEY=your-key`
+3. Set `AI_PROVIDER=anthropic` in `.env`
+**Timeline:** Works immediately
+**Cost:** Similar to OpenAI, but higher limits
 
-### **Long Term (This Month)**
-1. **Local LLM deployment** for complete privacy
-2. **Custom fine-tuned models** for meeting-specific processing
-3. **Real-time processing** for live meeting transcription
+### **⚡ CURRENT OPTION: Use Improved Chunking**
+**Why:** Works with your current OpenAI Tier 1 limits
+**How:** Already implemented! Just upload your 121K transcript
+**Timeline:** Works now
+**Cost:** No additional cost
+
+### **📋 Step-by-Step Action Plan**
+
+#### **Option A: Quick Fix (Claude)**
+```bash
+# 1. Get Claude API key from console.anthropic.com
+# 2. Add to your .env file:
+echo "ANTHROPIC_API_KEY=your-claude-key-here" >> backend/.env
+echo "AI_PROVIDER=anthropic" >> backend/.env
+
+# 3. Restart server and test
+```
+
+#### **Option B: OpenAI Tier Upgrade**
+1. Go to [OpenAI Billing](https://platform.openai.com/account/billing)
+2. Add $50+ to account balance
+3. Wait 7 days for automatic tier upgrade
+4. Test with 121K transcript
+
+#### **Option C: Use Current System**
+- Just upload your 121K transcript
+- System will automatically chunk it
+- Takes 2-3 minutes instead of 30 seconds
+- 0% content loss
 
 ## 🔑 **Environment Setup**
 

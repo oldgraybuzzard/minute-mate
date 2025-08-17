@@ -16,6 +16,7 @@ python-magic==0.4.27
 
 # AI and transcription
 openai==1.54.3
+anthropic==0.34.2
 # Using faster-whisper instead of openai-whisper for better compatibility
 faster-whisper==1.0.3
 torch==2.3.1
