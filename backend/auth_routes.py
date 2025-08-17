@@ -201,8 +201,8 @@ def check_auth():
     try:
         if current_user.is_authenticated:
             return jsonify(create_response(
-                True, 
-                "User is authenticated", 
+                True,
+                "User is authenticated",
                 {'user': current_user.to_dict()}
             )), 200
         else:
@@ -210,6 +210,99 @@ def check_auth():
     except Exception as e:
         logger.error(f"Auth check error: {str(e)}")
         return jsonify(create_response(False, "Auth check failed")), 500
+
+@auth_bp.route('/preferences', methods=['GET'])
+@login_required
+def get_user_preferences():
+    """Get user preferences"""
+    try:
+        from models import UserPreference
+
+        preferences = {}
+        user_prefs = UserPreference.query.filter_by(user_id=current_user.id).all()
+
+        for pref in user_prefs:
+            if pref.category not in preferences:
+                preferences[pref.category] = {}
+            preferences[pref.category][pref.key] = pref.value
+
+        # Flatten preferences for easier frontend use
+        flattened_prefs = {}
+        for category, prefs in preferences.items():
+            for key, value in prefs.items():
+                flattened_prefs[f"{category}_{key}"] = value
+
+        return jsonify(create_response(
+            True,
+            "Preferences retrieved",
+            {'preferences': flattened_prefs}
+        )), 200
+
+    except Exception as e:
+        logger.error(f"Get preferences error: {str(e)}")
+        return jsonify(create_response(False, "Failed to get preferences")), 500
+
+@auth_bp.route('/preferences', methods=['POST'])
+@login_required
+def save_user_preferences():
+    """Save user preferences"""
+    try:
+        from models import UserPreference, db
+
+        data = request.get_json()
+        if not data:
+            return jsonify(create_response(False, "No preferences data provided")), 400
+
+        # Map frontend preference keys to categories
+        preference_mapping = {
+            'default_template': ('meeting', 'default_template'),
+            'default_language': ('meeting', 'default_language'),
+            'timezone': ('user', 'timezone'),
+            'theme': ('user', 'theme'),
+            'email_notifications': ('notifications', 'email_enabled'),
+            'processing_notifications': ('notifications', 'processing_enabled')
+        }
+
+        # Update or create preferences
+        for pref_key, value in data.items():
+            if pref_key in preference_mapping:
+                category, key = preference_mapping[pref_key]
+
+                # Find existing preference or create new one
+                pref = UserPreference.query.filter_by(
+                    user_id=current_user.id,
+                    category=category,
+                    key=key
+                ).first()
+
+                if pref:
+                    pref.value = str(value)
+                else:
+                    pref = UserPreference(
+                        user_id=current_user.id,
+                        category=category,
+                        key=key,
+                        value=str(value)
+                    )
+                    db.session.add(pref)
+
+        # Update user model for theme and timezone
+        if 'theme' in data:
+            current_user.theme = data['theme']
+        if 'timezone' in data:
+            current_user.timezone = data['timezone']
+
+        db.session.commit()
+
+        return jsonify(create_response(
+            True,
+            "Preferences saved successfully"
+        )), 200
+
+    except Exception as e:
+        logger.error(f"Save preferences error: {str(e)}")
+        db.session.rollback()
+        return jsonify(create_response(False, "Failed to save preferences")), 500
 
 @auth_bp.route('/deactivate', methods=['POST'])
 @login_required

@@ -21,6 +21,14 @@ class DashboardApp {
         this.userName = document.getElementById('user-name');
         this.userFullName = document.getElementById('user-full-name');
         this.userEmail = document.getElementById('user-email');
+        this.userPreferences = document.getElementById('user-preferences');
+
+        // Preferences modal elements
+        this.preferencesModal = document.getElementById('preferences-modal');
+        this.preferencesModalClose = document.getElementById('preferences-modal-close');
+        this.preferencesCancel = document.getElementById('preferences-cancel');
+        this.preferencesSave = document.getElementById('preferences-save');
+        this.preferencesForm = document.getElementById('preferences-form');
         
         // Dashboard elements
         this.refreshBtn = document.getElementById('refresh-dashboard');
@@ -60,6 +68,32 @@ class DashboardApp {
         document.addEventListener('click', (e) => {
             if (!this.userMenuToggle.contains(e.target) && !this.userDropdown.contains(e.target)) {
                 this.userDropdown.classList.remove('show');
+            }
+        });
+
+        // User preferences
+        this.userPreferences.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showPreferencesModal();
+        });
+
+        // Preferences modal
+        this.preferencesModalClose.addEventListener('click', () => {
+            this.hidePreferencesModal();
+        });
+
+        this.preferencesCancel.addEventListener('click', () => {
+            this.hidePreferencesModal();
+        });
+
+        this.preferencesSave.addEventListener('click', () => {
+            this.saveUserPreferences();
+        });
+
+        // Close modal when clicking outside
+        this.preferencesModal.addEventListener('click', (e) => {
+            if (e.target === this.preferencesModal) {
+                this.hidePreferencesModal();
             }
         });
 
@@ -579,6 +613,116 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
         setTimeout(() => {
             toast.classList.remove('show');
         }, 5000);
+    }
+
+    async showPreferencesModal() {
+        try {
+            // Load current user preferences
+            await this.loadUserPreferences();
+            this.preferencesModal.style.display = 'flex';
+            this.userDropdown.classList.remove('show');
+        } catch (error) {
+            console.error('Error loading preferences:', error);
+            this.showToast('Failed to load preferences', 'error');
+        }
+    }
+
+    hidePreferencesModal() {
+        this.preferencesModal.style.display = 'none';
+    }
+
+    async loadUserPreferences() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/auth/preferences`, {
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    this.populatePreferencesForm(result.data.preferences);
+                } else {
+                    // Use default preferences if none exist
+                    this.populatePreferencesForm({});
+                }
+            } else {
+                throw new Error('Failed to load preferences');
+            }
+        } catch (error) {
+            console.error('Error loading user preferences:', error);
+            // Use default preferences
+            this.populatePreferencesForm({});
+        }
+    }
+
+    populatePreferencesForm(preferences) {
+        // Set form values from preferences or defaults
+        document.getElementById('default-template').value = preferences.default_template || 'professional';
+        document.getElementById('default-language').value = preferences.default_language || 'auto';
+        document.getElementById('user-timezone').value = preferences.timezone || this.currentUser?.timezone || 'UTC';
+        document.getElementById('user-theme').value = preferences.theme || this.currentUser?.theme || 'light';
+        document.getElementById('email-notifications').checked = preferences.email_notifications !== false;
+        document.getElementById('processing-notifications').checked = preferences.processing_notifications !== false;
+    }
+
+    async saveUserPreferences() {
+        try {
+            const formData = new FormData(this.preferencesForm);
+            const preferences = {};
+
+            // Convert form data to object
+            for (let [key, value] of formData.entries()) {
+                if (key.includes('notifications')) {
+                    preferences[key] = true; // Checkbox is checked if present
+                } else {
+                    preferences[key] = value;
+                }
+            }
+
+            // Set unchecked checkboxes to false
+            preferences.email_notifications = document.getElementById('email-notifications').checked;
+            preferences.processing_notifications = document.getElementById('processing-notifications').checked;
+
+            const response = await fetch(`${this.apiBaseUrl}/api/auth/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(preferences)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    this.showToast('Preferences saved successfully', 'success');
+                    this.hidePreferencesModal();
+
+                    // Update current user data if theme changed
+                    if (preferences.theme !== this.currentUser?.theme) {
+                        this.currentUser.theme = preferences.theme;
+                        this.applyTheme(preferences.theme);
+                    }
+                } else {
+                    throw new Error(result.message);
+                }
+            } else {
+                throw new Error('Failed to save preferences');
+            }
+        } catch (error) {
+            console.error('Error saving preferences:', error);
+            this.showToast('Failed to save preferences', 'error');
+        }
+    }
+
+    applyTheme(theme) {
+        if (theme === 'auto') {
+            // Use system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.body.classList.toggle('dark-theme', prefersDark);
+        } else {
+            document.body.classList.toggle('dark-theme', theme === 'dark');
+        }
     }
 }
 
