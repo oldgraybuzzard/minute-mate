@@ -29,16 +29,20 @@ class AIProcessor:
         self.temperature = float(os.getenv('OPENAI_TEMPERATURE', '0.1'))  # Low temperature for consistent, factual output
 
         # Context window limits (in characters, approximate)
+        # Adjusted for actual rate limits - your account has 30K TPM limit
         self.model_limits = {
             'gpt-3.5-turbo': 12000,      # ~4K tokens
             'gpt-4': 24000,              # ~8K tokens
-            'gpt-4-turbo': 400000,       # ~128K tokens
-            'gpt-4-turbo-preview': 400000, # ~128K tokens
-            'gpt-4o': 400000,            # ~128K tokens
+            'gpt-4-turbo': 75000,        # ~25K tokens (adjusted for 30K TPM limit)
+            'gpt-4-turbo-preview': 75000, # ~25K tokens (adjusted for 30K TPM limit)
+            'gpt-4o': 75000,             # ~25K tokens (adjusted for 30K TPM limit)
         }
 
         # Get the context limit for current model
         self.max_context_chars = self.model_limits.get(self.model, 12000)
+
+        # Rate limit aware processing - use chunking for large transcripts
+        self.use_chunking_threshold = 60000  # Use chunking for transcripts >60K chars
         
         if OPENAI_AVAILABLE:
             self._initialize_openai()
@@ -111,18 +115,16 @@ class AIProcessor:
             return self._create_fallback_response(transcript_text, filename)
         
         try:
-            # Check if transcript fits in model's context window
-            if len(transcript_text) > self.max_context_chars:
+            # Check if transcript should use chunking (rate limit aware)
+            if len(transcript_text) > self.use_chunking_threshold:
+                logger.warning(f"Transcript large ({len(transcript_text)} chars), using chunking to respect rate limits")
+                logger.info("Using chunking strategy to stay within rate limits")
+                return self._process_large_transcript_chunked(transcript_text, filename)
+            elif len(transcript_text) > self.max_context_chars:
                 logger.warning(f"Transcript too long ({len(transcript_text)} chars), max for {self.model} is {self.max_context_chars}")
-
-                # For very large transcripts, use chunking strategy
-                if len(transcript_text) > self.max_context_chars * 2:
-                    logger.info("Using chunking strategy for very large transcript")
-                    return self._process_large_transcript_chunked(transcript_text, filename)
-                else:
-                    # For moderately large transcripts, truncate intelligently
-                    logger.info("Truncating transcript intelligently")
-                    transcript_text = self._truncate_intelligently(transcript_text)
+                # For moderately large transcripts, truncate intelligently
+                logger.info("Truncating transcript intelligently")
+                transcript_text = self._truncate_intelligently(transcript_text)
 
             # Create the prompt
             prompt = self._create_analysis_prompt(transcript_text)

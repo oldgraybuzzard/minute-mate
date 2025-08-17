@@ -45,9 +45,15 @@ class BaseConfig:
         return self.ALLOWED_AUDIO_EXTENSIONS | self.ALLOWED_VIDEO_EXTENSIONS
     
     # AI Processing settings
+    AI_PROVIDER = os.environ.get('AI_PROVIDER', 'openai')  # openai, anthropic
     OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4-turbo-preview')  # gpt-3.5-turbo, gpt-4, gpt-4-turbo-preview, gpt-4o
     OPENAI_MAX_TOKENS = int(os.environ.get('OPENAI_MAX_TOKENS', '4000'))
     OPENAI_TEMPERATURE = float(os.environ.get('OPENAI_TEMPERATURE', '0.1'))
+
+    # Claude/Anthropic settings
+    ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+    ANTHROPIC_MAX_TOKENS = int(os.environ.get('ANTHROPIC_MAX_TOKENS', '4000'))
+    ANTHROPIC_TEMPERATURE = float(os.environ.get('ANTHROPIC_TEMPERATURE', '0.1'))
 
     # Whisper settings
     WHISPER_MODEL = os.environ.get('WHISPER_MODEL', 'base')  # tiny, base, small, medium, large
