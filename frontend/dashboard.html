@@ -86,6 +86,12 @@
             <div class="dashboard-header">
                 <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
                 <div class="dashboard-actions">
+                    <button class="btn secondary search-trigger" onclick="window.searchManager.openGlobalSearch()" title="Global Search (Ctrl+K)">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <button class="btn secondary" onclick="dashboardApp.showAnalytics()" title="View Analytics">
+                        <i class="fas fa-chart-bar"></i> Analytics
+                    </button>
                     <button class="btn primary" onclick="window.location.href='/frontend/'">
                         <i class="fas fa-plus"></i> New Meeting
                     </button>
@@ -423,6 +429,27 @@
             </div>
         </div>
 
+        <!-- Analytics Modal -->
+        <div id="analytics-modal" class="modal-overlay">
+            <div class="modal-content analytics-modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-chart-bar"></i> Meeting Analytics</h3>
+                    <button class="modal-close" onclick="dashboardApp.hideAnalytics()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="analytics-container">
+                    <!-- Analytics dashboard will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Search Shortcut Indicator -->
+        <div class="search-shortcut" onclick="window.searchManager.openGlobalSearch()">
+            <i class="fas fa-search"></i>
+            Press <kbd>Ctrl</kbd>+<kbd>K</kbd> to search
+        </div>
+
         <!-- Toast Notification -->
         <div class="toast" id="toast">
             <div class="toast-icon">
@@ -437,6 +464,8 @@
 
     <script src="loading-manager.js"></script>
     <script src="realtime-manager.js"></script>
+    <script src="search-manager.js"></script>
+    <script src="analytics-manager.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ class DashboardApp {
         this.initializeTheme();
         this.checkAuthentication();
         this.setupRealtimeUpdates();
+        this.setupAdvancedFeatures();
     }
 
     initializeElements() {
@@ -1521,6 +1522,207 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
                     }
                 }, 2000);
             }
+        }
+    }
+
+    setupAdvancedFeatures() {
+        // Initialize analytics
+        this.analyticsModal = document.getElementById('analytics-modal');
+
+        // Setup search shortcut visibility
+        this.setupSearchShortcut();
+    }
+
+    setupSearchShortcut() {
+        const shortcut = document.querySelector('.search-shortcut');
+        if (shortcut) {
+            // Hide shortcut on mobile
+            if (window.innerWidth <= 768) {
+                shortcut.style.display = 'none';
+            }
+
+            // Show/hide based on scroll
+            let lastScrollY = window.scrollY;
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > lastScrollY) {
+                    shortcut.style.transform = 'translateY(100px)';
+                } else {
+                    shortcut.style.transform = 'translateY(0)';
+                }
+                lastScrollY = window.scrollY;
+            });
+        }
+    }
+
+    showAnalytics() {
+        if (!this.analyticsModal) return;
+
+        // Create analytics dashboard
+        const analyticsContainer = document.getElementById('analytics-container');
+        const dashboard = window.analyticsManager.createAnalyticsDashboard();
+
+        // Clear existing content and add dashboard
+        analyticsContainer.innerHTML = '';
+        analyticsContainer.appendChild(dashboard);
+
+        // Load analytics data
+        window.analyticsManager.loadAnalyticsData();
+
+        // Show modal
+        this.analyticsModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    hideAnalytics() {
+        if (!this.analyticsModal) return;
+
+        this.analyticsModal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    // Enhanced search integration
+    performQuickSearch(query) {
+        window.searchManager.searchMeetings(query);
+    }
+
+    searchTranscripts(query) {
+        window.searchManager.searchTranscripts(query);
+    }
+
+    // Analytics integration
+    trackUserAction(action, data = {}) {
+        // Track user actions for analytics
+        const actionData = {
+            action,
+            timestamp: new Date().toISOString(),
+            page: 'dashboard',
+            ...data
+        };
+
+        // Send to analytics (implement as needed)
+        console.log('User Action:', actionData);
+
+        // Store locally for insights
+        const actions = JSON.parse(localStorage.getItem('userActions') || '[]');
+        actions.push(actionData);
+
+        // Keep only last 100 actions
+        if (actions.length > 100) {
+            actions.splice(0, actions.length - 100);
+        }
+
+        localStorage.setItem('userActions', JSON.stringify(actions));
+    }
+
+    // Enhanced meeting operations with analytics
+    async deleteMeetingWithAnalytics(meetingId) {
+        try {
+            this.trackUserAction('delete_meeting', { meetingId });
+
+            // Check if online
+            if (!navigator.onLine) {
+                window.realtimeManager.queueOfflineAction('deleteMeeting', { meetingId });
+                window.loadingManager.showToast('Meeting deletion queued for when online', 'info');
+                return;
+            }
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/${meetingId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                // Remove from UI immediately
+                const meetingCard = document.querySelector(`[data-meeting-id="${meetingId}"]`);
+                if (meetingCard) {
+                    meetingCard.style.transition = 'all 0.3s ease';
+                    meetingCard.style.opacity = '0';
+                    meetingCard.style.transform = 'translateX(-100%)';
+                    setTimeout(() => meetingCard.remove(), 300);
+                }
+
+                // Clear cache and refresh data
+                window.loadingManager.clearCache('meetings-');
+                this.loadDashboardData();
+
+                window.loadingManager.showToast('Meeting deleted successfully', 'success');
+            } else {
+                throw new Error('Failed to delete meeting');
+            }
+        } catch (error) {
+            console.error('Error deleting meeting:', error);
+            window.loadingManager.showToast('Failed to delete meeting', 'error');
+        }
+    }
+
+    // Performance optimization for large datasets
+    optimizeForLargeDatasets() {
+        // Implement virtual scrolling for large meeting lists
+        const meetingsList = this.recentMeetings;
+        if (!meetingsList) return;
+
+        // Add intersection observer for lazy loading
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const meetingCard = entry.target;
+                    // Load additional meeting details if needed
+                    this.loadMeetingDetails(meetingCard);
+                }
+            });
+        });
+
+        // Observe all meeting cards
+        meetingsList.querySelectorAll('.meeting-card').forEach(card => {
+            observer.observe(card);
+        });
+    }
+
+    async loadMeetingDetails(meetingCard) {
+        const meetingId = meetingCard.dataset.meetingId;
+        if (!meetingId || meetingCard.dataset.detailsLoaded) return;
+
+        try {
+            const details = await window.loadingManager.fetchWithCache(
+                `${this.apiBaseUrl}/api/meetings/${meetingId}/details`,
+                {
+                    credentials: 'include',
+                    cache: true,
+                    showLoading: false
+                }
+            );
+
+            if (details.success) {
+                // Add additional details to card
+                this.enhanceMeetingCard(meetingCard, details.data);
+                meetingCard.dataset.detailsLoaded = 'true';
+            }
+        } catch (error) {
+            console.error('Error loading meeting details:', error);
+        }
+    }
+
+    enhanceMeetingCard(card, details) {
+        // Add additional information to meeting card
+        const metaSection = card.querySelector('.meeting-meta');
+        if (metaSection && details.attendees) {
+            const attendeesInfo = document.createElement('span');
+            attendeesInfo.className = 'meeting-attendees';
+            attendeesInfo.innerHTML = `
+                <i class="fas fa-users"></i>
+                ${details.attendees.length} attendees
+            `;
+            metaSection.appendChild(attendeesInfo);
+        }
+
+        // Add tags if available
+        if (details.tags && details.tags.length > 0) {
+            const tagsContainer = document.createElement('div');
+            tagsContainer.className = 'meeting-tags';
+            tagsContainer.innerHTML = details.tags.map(tag =>
+                `<span class="tag">${tag}</span>`
+            ).join('');
+            card.appendChild(tagsContainer);
         }
     }
 }
