@@ -15,39 +15,87 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class AIProcessor:
-    """AI-powered transcript processor using OpenAI"""
-    
+    """AI-powered transcript processor supporting multiple providers"""
+
     def __init__(self):
         """Initialize the AI processor"""
+        self.provider = os.getenv('AI_PROVIDER', 'openai').lower()
         self.client = None
-        # Use GPT-4 Turbo for much larger context window (128K tokens vs 4K)
-        self.model = os.getenv('OPENAI_MODEL', 'gpt-4-turbo-preview')
-        self.max_tokens = int(os.getenv('OPENAI_MAX_TOKENS', '4000'))
-        self.temperature = float(os.getenv('OPENAI_TEMPERATURE', '0.1'))  # Low temperature for consistent, factual output
+        self.gemini_client = None
+        self.anthropic_client = None
+
+        # Provider-specific configuration
+        if self.provider == 'openai':
+            self.model = os.getenv('OPENAI_MODEL', 'gpt-4-turbo-preview')
+            self.max_tokens = int(os.getenv('OPENAI_MAX_TOKENS', '4000'))
+            self.temperature = float(os.getenv('OPENAI_TEMPERATURE', '0.1'))
+        elif self.provider == 'gemini':
+            self.model = os.getenv('GEMINI_MODEL', 'gemini-1.5-pro')
+            self.max_tokens = int(os.getenv('GEMINI_MAX_TOKENS', '4000'))
+            self.temperature = float(os.getenv('GEMINI_TEMPERATURE', '0.1'))
+        elif self.provider == 'anthropic':
+            self.model = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+            self.max_tokens = int(os.getenv('ANTHROPIC_MAX_TOKENS', '4000'))
+            self.temperature = float(os.getenv('ANTHROPIC_TEMPERATURE', '0.1'))
 
         # Context window limits (in characters, approximate)
-        # Adjusted for actual rate limits - your account has 30K TPM limit
         self.model_limits = {
+            # OpenAI models (adjusted for 30K TPM rate limit)
             'gpt-3.5-turbo': 12000,      # ~4K tokens
             'gpt-4': 24000,              # ~8K tokens
             'gpt-4-turbo': 75000,        # ~25K tokens (adjusted for 30K TPM limit)
             'gpt-4-turbo-preview': 75000, # ~25K tokens (adjusted for 30K TPM limit)
             'gpt-4o': 75000,             # ~25K tokens (adjusted for 30K TPM limit)
+
+            # Gemini models (much higher limits)
+            'gemini-1.5-pro': 4000000,   # ~1M tokens (4M characters)
+            'gemini-1.5-flash': 4000000, # ~1M tokens (4M characters)
+
+            # Claude models (high limits)
+            'claude-3-5-sonnet-20241022': 800000,  # ~200K tokens (800K characters)
+            'claude-3-haiku': 800000,    # ~200K tokens (800K characters)
         }
 
         # Get the context limit for current model
         self.max_context_chars = self.model_limits.get(self.model, 12000)
 
         # Rate limit aware processing - use chunking for large transcripts
-        self.use_chunking_threshold = 60000  # Use chunking for transcripts >60K chars
-        
-        if OPENAI_AVAILABLE:
-            self._initialize_openai()
+        # Gemini can handle much larger transcripts without chunking
+        if self.provider == 'gemini':
+            self.use_chunking_threshold = 3000000  # 3M chars for Gemini
+        elif self.provider == 'anthropic':
+            self.use_chunking_threshold = 600000   # 600K chars for Claude
         else:
-            logger.warning("OpenAI package not available. AI processing will be disabled.")
+            self.use_chunking_threshold = 60000    # 60K chars for OpenAI
+        
+        # Initialize the appropriate AI client
+        self._initialize_clients()
+
+    def _initialize_clients(self):
+        """Initialize AI clients based on provider"""
+        if self.provider == 'openai':
+            self._initialize_openai()
+        elif self.provider == 'gemini':
+            self._initialize_gemini()
+        elif self.provider == 'anthropic':
+            self._initialize_anthropic()
+        else:
+            logger.error(f"Unknown AI provider: {self.provider}")
     
     def _initialize_openai(self):
         """Initialize OpenAI client"""
@@ -94,10 +142,57 @@ class AIProcessor:
         except Exception as e:
             logger.error(f"Failed to initialize OpenAI client: {str(e)}")
             self.client = None
-    
+
+    def _initialize_gemini(self):
+        """Initialize Google Gemini client"""
+        if not GEMINI_AVAILABLE:
+            logger.error("Google Generative AI package not available")
+            return
+
+        try:
+            api_key = os.getenv('GOOGLE_API_KEY')
+            if not api_key:
+                logger.warning("GOOGLE_API_KEY not found in environment variables")
+                return
+
+            logger.info("Attempting to initialize Gemini client...")
+            genai.configure(api_key=api_key)
+            self.gemini_client = genai.GenerativeModel(self.model)
+            logger.info(f"Gemini client initialized with model: {self.model}")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini client: {str(e)}")
+            self.gemini_client = None
+
+    def _initialize_anthropic(self):
+        """Initialize Anthropic Claude client"""
+        if not ANTHROPIC_AVAILABLE:
+            logger.error("Anthropic package not available")
+            return
+
+        try:
+            api_key = os.getenv('ANTHROPIC_API_KEY')
+            if not api_key:
+                logger.warning("ANTHROPIC_API_KEY not found in environment variables")
+                return
+
+            logger.info("Attempting to initialize Anthropic client...")
+            self.anthropic_client = anthropic.Anthropic(api_key=api_key)
+            logger.info(f"Anthropic client initialized with model: {self.model}")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Anthropic client: {str(e)}")
+            self.anthropic_client = None
+
     def is_available(self) -> bool:
         """Check if AI processing is available"""
-        return OPENAI_AVAILABLE and self.client is not None
+        if self.provider == 'openai':
+            return OPENAI_AVAILABLE and self.client is not None
+        elif self.provider == 'gemini':
+            return GEMINI_AVAILABLE and self.gemini_client is not None
+        elif self.provider == 'anthropic':
+            return ANTHROPIC_AVAILABLE and self.anthropic_client is not None
+        return False
     
     def process_transcript(self, transcript_text: str, filename: str = "") -> Dict[str, Any]:
         """
