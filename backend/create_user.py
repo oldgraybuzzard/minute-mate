@@ -8,6 +8,7 @@ import hashlib
 import uuid
 from datetime import datetime
 import sys
+from werkzeug.security import generate_password_hash
 
 def create_user(username, email, password, first_name="", last_name="", is_admin=False):
     """Create a user directly in the database"""
@@ -43,9 +44,9 @@ def create_user(username, email, password, first_name="", last_name="", is_admin
             print(f"❌ User with username '{username}' or email '{email}' already exists!")
             return False
         
-        # Generate user ID and hash password
+        # Generate user ID and hash password using Werkzeug (compatible with auth system)
         user_id = str(uuid.uuid4())
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
         now = datetime.now().isoformat()
         
         # Insert user
@@ -129,8 +130,8 @@ def reset_password(username_or_email, new_password):
         
         user_id, username, email = user
         
-        # Hash new password
-        password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        # Hash new password using Werkzeug (compatible with auth system)
+        password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         
         # Update password
         cursor.execute('''
