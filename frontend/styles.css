@@ -6489,6 +6489,182 @@ body {
     background: var(--gray-200);
 }
 
+/* Meeting Sharing & Export Styles */
+.btn-group {
+    display: inline-flex;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.btn-group .btn {
+    border-radius: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+    border-right: none;
+}
+
+.dropdown-toggle {
+    padding: 8px 10px !important;
+    min-width: auto !important;
+}
+
+.share-modal,
+.export-modal,
+.email-modal {
+    max-width: 500px;
+    width: 90%;
+}
+
+.share-link-container {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.share-link-container input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    background: var(--gray-50);
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.share-expiry {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.share-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.export-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.export-option {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.export-option:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.export-option i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    min-width: 40px;
+}
+
+.export-option h4 {
+    margin: 0 0 5px 0;
+    color: var(--gray-800);
+    font-size: 1.1rem;
+}
+
+.export-option p {
+    margin: 0;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.email-modal .form-group {
+    margin-bottom: 20px;
+}
+
+.email-modal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.email-modal input,
+.email-modal textarea,
+.email-modal select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+}
+
+.email-modal textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-200);
+}
+
+/* Dark mode support for sharing */
+[data-theme="dark"] .share-link-container input {
+    background: var(--gray-200);
+    border-color: var(--gray-400);
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .export-option {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .export-option:hover {
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .share-actions,
+[data-theme="dark"] .form-actions {
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .email-modal input,
+[data-theme="dark"] .email-modal textarea,
+[data-theme="dark"] .email-modal select {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+    color: var(--gray-900);
+}
+
 /* Responsive design for profile */
 @media (max-width: 1024px) {
     .profile-header {
@@ -6553,5 +6729,34 @@ body {
         flex-direction: column;
         gap: 15px;
         text-align: center;
+    }
+
+    .export-options {
+        grid-template-columns: 1fr;
+    }
+
+    .share-actions,
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .share-link-container {
+        flex-direction: column;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        border-radius: var(--border-radius) !important;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 2px;
+    }
+
+    .btn-group .btn:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
     }
 }

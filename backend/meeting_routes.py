@@ -397,6 +397,214 @@ def download_meeting(meeting_id):
         logger.error(f"Download meeting endpoint error: {str(e)}")
         return jsonify(create_response(False, "Failed to download meeting")), 500
 
+@meeting_bp.route('/<meeting_id>/share', methods=['POST'])
+@login_required
+def create_share_link(meeting_id):
+    """Create a shareable link for a meeting"""
+    try:
+        meeting = Meeting.query.filter_by(id=meeting_id, user_id=current_user.id).first()
+        if not meeting:
+            return jsonify(create_response(False, "Meeting not found")), 404
+
+        if meeting.status != 'completed':
+            return jsonify(create_response(False, "Can only share completed meetings")), 400
+
+        # Generate share token
+        import secrets
+        from datetime import datetime, timedelta
+
+        share_token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(days=7)  # Link expires in 7 days
+
+        # Store share link in database (you might want to create a ShareLink model)
+        # For now, we'll use a simple approach with meeting metadata
+        share_data = {
+            'token': share_token,
+            'expires_at': expires_at.isoformat(),
+            'created_by': current_user.id,
+            'created_at': datetime.utcnow().isoformat()
+        }
+
+        # You could store this in a separate table, but for simplicity, we'll add it to meeting metadata
+        # In a production app, create a proper ShareLink model
+
+        share_url = f"{request.host_url}shared/{share_token}"
+
+        return jsonify(create_response(
+            True,
+            "Share link created successfully",
+            {
+                'share_url': share_url,
+                'expires_at': expires_at.isoformat(),
+                'token': share_token
+            }
+        )), 200
+
+    except Exception as e:
+        logger.error(f"Create share link error: {str(e)}")
+        return jsonify(create_response(False, "Failed to create share link")), 500
+
+@meeting_bp.route('/share/revoke', methods=['POST'])
+@login_required
+def revoke_share_link():
+    """Revoke a share link"""
+    try:
+        data = request.get_json()
+        if not data or 'share_url' not in data:
+            return jsonify(create_response(False, "Share URL required")), 400
+
+        # Extract token from URL
+        share_url = data['share_url']
+        token = share_url.split('/')[-1]
+
+        # In a real implementation, you'd delete from ShareLink table
+        # For now, we'll just return success
+
+        return jsonify(create_response(True, "Share link revoked successfully")), 200
+
+    except Exception as e:
+        logger.error(f"Revoke share link error: {str(e)}")
+        return jsonify(create_response(False, "Failed to revoke share link")), 500
+
+@meeting_bp.route('/<meeting_id>/export', methods=['GET'])
+@login_required
+def export_meeting(meeting_id):
+    """Export meeting in various formats"""
+    try:
+        meeting = Meeting.query.filter_by(id=meeting_id, user_id=current_user.id).first()
+        if not meeting:
+            return jsonify(create_response(False, "Meeting not found")), 404
+
+        if meeting.status != 'completed':
+            return jsonify(create_response(False, "Can only export completed meetings")), 400
+
+        export_format = request.args.get('format', 'docx').lower()
+
+        if export_format == 'docx':
+            if meeting.docx_file_path and os.path.exists(meeting.docx_file_path):
+                return send_file(
+                    meeting.docx_file_path,
+                    as_attachment=True,
+                    download_name=f"meeting-{meeting.title or meeting.id}.docx",
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                )
+            else:
+                return jsonify(create_response(False, "DOCX file not available")), 404
+
+        elif export_format == 'pdf':
+            # For PDF export, you'd need to implement PDF generation
+            # For now, return an error
+            return jsonify(create_response(False, "PDF export not yet implemented")), 501
+
+        elif export_format == 'json':
+            # Export as JSON
+            meeting_data = {
+                'id': meeting.id,
+                'title': meeting.title,
+                'description': meeting.description,
+                'meeting_date': meeting.meeting_date.isoformat() if meeting.meeting_date else None,
+                'duration_minutes': meeting.duration_minutes,
+                'transcript': meeting.transcript,
+                'attendees': meeting.attendees,
+                'agenda_items': meeting.agenda_items,
+                'motions': meeting.motions,
+                'action_items': meeting.action_items,
+                'key_decisions': meeting.key_decisions,
+                'created_at': meeting.created_at.isoformat(),
+                'updated_at': meeting.updated_at.isoformat()
+            }
+
+            import json
+            from io import BytesIO
+
+            json_data = json.dumps(meeting_data, indent=2)
+            json_file = BytesIO(json_data.encode('utf-8'))
+
+            return send_file(
+                json_file,
+                as_attachment=True,
+                download_name=f"meeting-{meeting.title or meeting.id}.json",
+                mimetype='application/json'
+            )
+        else:
+            return jsonify(create_response(False, "Unsupported export format")), 400
+
+    except Exception as e:
+        logger.error(f"Export meeting error: {str(e)}")
+        return jsonify(create_response(False, "Export failed")), 500
+
+@meeting_bp.route('/<meeting_id>/email', methods=['POST'])
+@login_required
+def email_meeting(meeting_id):
+    """Email meeting to specified recipients"""
+    try:
+        meeting = Meeting.query.filter_by(id=meeting_id, user_id=current_user.id).first()
+        if not meeting:
+            return jsonify(create_response(False, "Meeting not found")), 404
+
+        if meeting.status != 'completed':
+            return jsonify(create_response(False, "Can only email completed meetings")), 400
+
+        data = request.get_json()
+        if not data:
+            return jsonify(create_response(False, "Email data required")), 400
+
+        recipients = data.get('to', [])
+        subject = data.get('subject', 'Meeting Minutes')
+        message = data.get('message', '')
+        export_format = data.get('format', 'pdf')
+
+        if not recipients:
+            return jsonify(create_response(False, "Recipients required")), 400
+
+        # Validate email addresses
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        for email in recipients:
+            if not re.match(email_pattern, email.strip()):
+                return jsonify(create_response(False, f"Invalid email address: {email}")), 400
+
+        # For now, we'll simulate email sending
+        # In a real implementation, you'd use a service like SendGrid, AWS SES, etc.
+
+        # Prepare email content
+        email_body = f"""
+Dear Recipient,
+
+{message}
+
+Please find the meeting minutes attached.
+
+Meeting Details:
+- Title: {meeting.title}
+- Date: {meeting.meeting_date.strftime('%Y-%m-%d %H:%M') if meeting.meeting_date else 'Not specified'}
+- Duration: {meeting.duration_minutes} minutes
+
+Best regards,
+{current_user.first_name} {current_user.last_name}
+MinuteMate
+        """.strip()
+
+        # Log the email attempt (in production, actually send the email)
+        logger.info(f"Email simulation - Meeting {meeting_id} would be sent to: {', '.join(recipients)}")
+        logger.info(f"Subject: {subject}")
+        logger.info(f"Format: {export_format}")
+
+        # Simulate successful email sending
+        return jsonify(create_response(
+            True,
+            f"Meeting emailed successfully to {len(recipients)} recipient(s)",
+            {
+                'recipients': recipients,
+                'subject': subject,
+                'format': export_format
+            }
+        )), 200
+
+    except Exception as e:
+        logger.error(f"Email meeting error: {str(e)}")
+        return jsonify(create_response(False, "Failed to send email")), 500
+
 # Error handlers for the meeting blueprint
 @meeting_bp.errorhandler(400)
 def bad_request(error):

@@ -884,8 +884,16 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
                             <i class="fas fa-eye"></i> View
                         </button>
                         ${meeting.status === 'completed' ? `
-                            <button class="btn primary small" onclick="dashboardApp.downloadMeeting('${meeting.id}')">
-                                <i class="fas fa-download"></i> Download
+                            <div class="btn-group">
+                                <button class="btn primary small" onclick="dashboardApp.downloadMeeting('${meeting.id}')">
+                                    <i class="fas fa-download"></i> Download
+                                </button>
+                                <button class="btn primary small dropdown-toggle" onclick="dashboardApp.showExportOptions('${meeting.id}')">
+                                    <i class="fas fa-caret-down"></i>
+                                </button>
+                            </div>
+                            <button class="btn secondary small" onclick="dashboardApp.shareMeeting('${meeting.id}')">
+                                <i class="fas fa-share-alt"></i> Share
                             </button>
                         ` : ''}
                         <button class="btn secondary small" onclick="dashboardApp.deleteMeeting('${meeting.id}')">
@@ -1068,6 +1076,298 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
         } catch (error) {
             console.error('Error deleting meeting:', error);
             this.showToast('Failed to delete meeting', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async shareMeeting(meetingId) {
+        try {
+            this.showLoading('Generating share link...');
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/${meetingId}/share`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    this.showShareModal(result.data.share_url, result.data.expires_at);
+                } else {
+                    throw new Error(result.message);
+                }
+            } else {
+                throw new Error('Failed to generate share link');
+            }
+        } catch (error) {
+            console.error('Error sharing meeting:', error);
+            this.showToast('Failed to generate share link', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    showShareModal(shareUrl, expiresAt) {
+        const shareModal = document.createElement('div');
+        shareModal.className = 'modal-overlay';
+        shareModal.innerHTML = `
+            <div class="modal share-modal">
+                <div class="modal-header">
+                    <h3>Share Meeting</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="share-info">
+                        <p>Share this link to give others access to view the meeting minutes:</p>
+                        <div class="share-link-container">
+                            <input type="text" id="share-link" value="${shareUrl}" readonly>
+                            <button class="btn primary" onclick="dashboardApp.copyShareLink()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <p class="share-expiry">
+                            <i class="fas fa-clock"></i>
+                            Link expires: ${new Date(expiresAt).toLocaleString()}
+                        </p>
+                    </div>
+                    <div class="share-actions">
+                        <button class="btn secondary" onclick="dashboardApp.shareViaEmail('${shareUrl}')">
+                            <i class="fas fa-envelope"></i> Share via Email
+                        </button>
+                        <button class="btn secondary" onclick="dashboardApp.revokeShareLink('${shareUrl}')">
+                            <i class="fas fa-ban"></i> Revoke Link
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(shareModal);
+    }
+
+    copyShareLink() {
+        const linkInput = document.getElementById('share-link');
+        linkInput.select();
+        linkInput.setSelectionRange(0, 99999); // For mobile devices
+
+        try {
+            document.execCommand('copy');
+            this.showToast('Share link copied to clipboard', 'success');
+        } catch (err) {
+            console.error('Failed to copy link:', err);
+            this.showToast('Failed to copy link', 'error');
+        }
+    }
+
+    shareViaEmail(shareUrl) {
+        const subject = encodeURIComponent('Meeting Minutes - Shared Link');
+        const body = encodeURIComponent(`Hi,\n\nI'm sharing meeting minutes with you. You can view them using this link:\n\n${shareUrl}\n\nBest regards`);
+        window.open(`mailto:?subject=${subject}&body=${body}`);
+    }
+
+    async revokeShareLink(shareUrl) {
+        if (!confirm('Are you sure you want to revoke this share link? It will no longer be accessible.')) {
+            return;
+        }
+
+        try {
+            this.showLoading('Revoking share link...');
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/share/revoke`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ share_url: shareUrl })
+            });
+
+            if (response.ok) {
+                this.showToast('Share link revoked successfully', 'success');
+                document.querySelector('.share-modal').closest('.modal-overlay').remove();
+            } else {
+                throw new Error('Failed to revoke share link');
+            }
+        } catch (error) {
+            console.error('Error revoking share link:', error);
+            this.showToast('Failed to revoke share link', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    showExportOptions(meetingId) {
+        const exportModal = document.createElement('div');
+        exportModal.className = 'modal-overlay';
+        exportModal.innerHTML = `
+            <div class="modal export-modal">
+                <div class="modal-header">
+                    <h3>Export Options</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="export-options">
+                        <div class="export-option" onclick="dashboardApp.exportMeeting('${meetingId}', 'docx')">
+                            <i class="fas fa-file-word"></i>
+                            <div>
+                                <h4>Word Document</h4>
+                                <p>Download as DOCX file</p>
+                            </div>
+                        </div>
+                        <div class="export-option" onclick="dashboardApp.exportMeeting('${meetingId}', 'pdf')">
+                            <i class="fas fa-file-pdf"></i>
+                            <div>
+                                <h4>PDF Document</h4>
+                                <p>Download as PDF file</p>
+                            </div>
+                        </div>
+                        <div class="export-option" onclick="dashboardApp.exportMeeting('${meetingId}', 'json')">
+                            <i class="fas fa-file-code"></i>
+                            <div>
+                                <h4>JSON Data</h4>
+                                <p>Download raw meeting data</p>
+                            </div>
+                        </div>
+                        <div class="export-option" onclick="dashboardApp.emailMeeting('${meetingId}')">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <h4>Email</h4>
+                                <p>Send via email</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(exportModal);
+    }
+
+    async exportMeeting(meetingId, format) {
+        try {
+            this.showLoading(`Exporting as ${format.toUpperCase()}...`);
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/${meetingId}/export?format=${format}`, {
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `meeting-${meetingId}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                this.showToast(`Meeting exported as ${format.toUpperCase()}`, 'success');
+
+                // Close export modal
+                const modal = document.querySelector('.export-modal').closest('.modal-overlay');
+                if (modal) modal.remove();
+            } else {
+                throw new Error(`Failed to export as ${format}`);
+            }
+        } catch (error) {
+            console.error('Error exporting meeting:', error);
+            this.showToast(`Failed to export as ${format.toUpperCase()}`, 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    emailMeeting(meetingId) {
+        const emailModal = document.createElement('div');
+        emailModal.className = 'modal-overlay';
+        emailModal.innerHTML = `
+            <div class="modal email-modal">
+                <div class="modal-header">
+                    <h3>Email Meeting</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="email-form" onsubmit="dashboardApp.sendMeetingEmail(event, '${meetingId}')">
+                        <div class="form-group">
+                            <label for="email-to">To:</label>
+                            <input type="email" id="email-to" name="to" required multiple
+                                   placeholder="Enter email addresses (comma separated)">
+                        </div>
+                        <div class="form-group">
+                            <label for="email-subject">Subject:</label>
+                            <input type="text" id="email-subject" name="subject"
+                                   value="Meeting Minutes" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email-message">Message:</label>
+                            <textarea id="email-message" name="message" rows="4"
+                                      placeholder="Optional message to include with the meeting minutes"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="email-format">Format:</label>
+                            <select id="email-format" name="format">
+                                <option value="pdf">PDF</option>
+                                <option value="docx">Word Document</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn secondary" onclick="this.closest('.modal-overlay').remove()">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn primary">
+                                <i class="fas fa-paper-plane"></i> Send Email
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(emailModal);
+
+        // Close export modal if open
+        const exportModal = document.querySelector('.export-modal');
+        if (exportModal) exportModal.closest('.modal-overlay').remove();
+    }
+
+    async sendMeetingEmail(event, meetingId) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const emailData = {
+            to: formData.get('to').split(',').map(email => email.trim()),
+            subject: formData.get('subject'),
+            message: formData.get('message'),
+            format: formData.get('format')
+        };
+
+        try {
+            this.showLoading('Sending email...');
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/${meetingId}/email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(emailData)
+            });
+
+            if (response.ok) {
+                this.showToast('Email sent successfully', 'success');
+                document.querySelector('.email-modal').closest('.modal-overlay').remove();
+            } else {
+                const result = await response.json();
+                throw new Error(result.message || 'Failed to send email');
+            }
+        } catch (error) {
+            console.error('Error sending email:', error);
+            this.showToast('Failed to send email', 'error');
         } finally {
             this.hideLoading();
         }

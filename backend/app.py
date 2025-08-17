@@ -787,6 +787,48 @@ def serve_frontend_files(filename):
 
     return "File not found", 404
 
+@app.route('/shared/<token>')
+def view_shared_meeting(token):
+    """View a shared meeting"""
+    import os
+    frontend_paths = [
+        '../frontend',
+        'frontend',
+        '/app/frontend',
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend')
+    ]
+
+    for frontend_path in frontend_paths:
+        try:
+            if os.path.exists(os.path.join(frontend_path, 'shared.html')):
+                return send_from_directory(frontend_path, 'shared.html')
+        except:
+            continue
+
+    # If file not found, return a simple HTML page
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Shared Meeting - MinuteMate</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; }}
+            .container {{ max-width: 800px; margin: 0 auto; }}
+            .error {{ color: #dc3545; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>MinuteMate - Shared Meeting</h1>
+            <p class="error">Shared meeting view is being set up. Token: {token}</p>
+            <p>This feature will be available soon.</p>
+        </div>
+    </body>
+    </html>
+    '''
+
 @app.route('/api/upload', methods=['POST'])
 @login_required
 def upload_file():
