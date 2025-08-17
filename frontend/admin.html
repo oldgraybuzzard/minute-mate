@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - MinuteMate</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="admin-nav">
+                <div class="admin-logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <h1>MinuteMate Admin</h1>
+                </div>
+                <nav class="admin-menu">
+                    <button class="admin-tab active" data-tab="users">
+                        <i class="fas fa-users"></i> Users
+                    </button>
+                    <button class="admin-tab" data-tab="system">
+                        <i class="fas fa-cogs"></i> System
+                    </button>
+                    <button class="admin-tab" data-tab="logs">
+                        <i class="fas fa-file-alt"></i> Logs
+                    </button>
+                </nav>
+                <div class="admin-actions">
+                    <button class="btn secondary" onclick="window.location.href='/frontend/dashboard.html'">
+                        <i class="fas fa-arrow-left"></i> Back to App
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            <!-- Users Tab -->
+            <div id="users-tab" class="admin-tab-content active">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-users"></i> User Management</h2>
+                        <button class="btn primary" id="create-user-btn">
+                            <i class="fas fa-plus"></i> Create User
+                        </button>
+                    </div>
+
+                    <div class="admin-filters">
+                        <div class="filter-group">
+                            <input type="text" id="user-search" placeholder="Search users..." class="search-input">
+                        </div>
+                        <div class="filter-group">
+                            <select id="user-status-filter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn secondary" id="refresh-users">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="users-table-container">
+                        <table class="admin-table" id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Last Login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <!-- Users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Tab -->
+            <div id="system-tab" class="admin-tab-content">
+                <div class="admin-section">
+                    <h2><i class="fas fa-cogs"></i> System Information</h2>
+                    <div class="system-info-grid">
+                        <div class="info-card">
+                            <h3>Database</h3>
+                            <div class="info-item">
+                                <span>Total Users:</span>
+                                <span id="total-users">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span>Total Meetings:</span>
+                                <span id="total-meetings">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span>Database Size:</span>
+                                <span id="db-size">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="info-card">
+                            <h3>System Health</h3>
+                            <div class="info-item">
+                                <span>Server Status:</span>
+                                <span class="status-indicator online">Online</span>
+                            </div>
+                            <div class="info-item">
+                                <span>Last Backup:</span>
+                                <span id="last-backup">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span>Uptime:</span>
+                                <span id="uptime">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logs-tab" class="admin-tab-content">
+                <div class="admin-section">
+                    <h2><i class="fas fa-file-alt"></i> System Logs</h2>
+                    <div class="logs-container">
+                        <div class="logs-filters">
+                            <select id="log-level">
+                                <option value="">All Levels</option>
+                                <option value="ERROR">Error</option>
+                                <option value="WARNING">Warning</option>
+                                <option value="INFO">Info</option>
+                                <option value="DEBUG">Debug</option>
+                            </select>
+                            <button class="btn secondary" id="refresh-logs">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="logs-display" id="logs-display">
+                            <!-- Logs will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Create User Modal -->
+        <div id="create-user-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus"></i> Create New User</h3>
+                    <button class="modal-close" onclick="closeCreateUserModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-user-form">
+                        <div class="form-group">
+                            <label for="new-username">Username *</label>
+                            <input type="text" id="new-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-email">Email *</label>
+                            <input type="email" id="new-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-password">Password *</label>
+                            <input type="password" id="new-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-first-name">First Name</label>
+                            <input type="text" id="new-first-name">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-last-name">Last Name</label>
+                            <input type="text" id="new-last-name">
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="new-is-admin">
+                                Admin User
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn secondary" onclick="closeCreateUserModal()">Cancel</button>
+                    <button class="btn primary" onclick="createUser()">Create User</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reset Password Modal -->
+        <div id="reset-password-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-key"></i> Reset Password</h3>
+                    <button class="modal-close" onclick="closeResetPasswordModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="reset-password-form">
+                        <div class="form-group">
+                            <label for="reset-user-info">User</label>
+                            <input type="text" id="reset-user-info" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="reset-new-password">New Password *</label>
+                            <input type="password" id="reset-new-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reset-confirm-password">Confirm Password *</label>
+                            <input type="password" id="reset-confirm-password" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn secondary" onclick="closeResetPasswordModal()">Cancel</button>
+                    <button class="btn primary" onclick="resetUserPassword()">Reset Password</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="admin-toast">
+            <div class="toast-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="toast-message">Message</div>
+            <button class="toast-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

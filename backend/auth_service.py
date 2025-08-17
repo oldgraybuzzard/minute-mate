@@ -4,6 +4,7 @@ Handles user registration, login, and session management
 """
 
 import logging
+import secrets
 from datetime import datetime, timezone, timedelta
 from flask import current_app
 from flask_login import login_user, logout_user, current_user
@@ -250,8 +251,80 @@ class AuthService:
             
             logger.info(f"User deactivated: {user.username}")
             return True, "Account deactivated"
-            
+
         except Exception as e:
             db.session.rollback()
             logger.error(f"User deactivation error: {str(e)}")
             return False, "Deactivation failed"
+
+    def request_password_reset(self, email):
+        """Request a password reset for the given email"""
+        try:
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                # Don't reveal if email exists or not for security
+                return {'success': True, 'message': 'If the email exists, a reset link has been sent'}
+
+            # Generate reset token
+            reset_token = secrets.token_urlsafe(32)
+            reset_expires = datetime.now() + timedelta(hours=1)  # 1 hour expiry
+
+            # Store reset token (in a real app, you'd store this in the database)
+            # For now, we'll use a simple in-memory store
+            if not hasattr(self, 'reset_tokens'):
+                self.reset_tokens = {}
+
+            self.reset_tokens[reset_token] = {
+                'user_id': user.id,
+                'email': email,
+                'expires': reset_expires
+            }
+
+            # In a real application, you would send an email here
+            # For development, we'll just log the reset link
+            reset_url = f"http://localhost:5000/frontend/auth.html?reset_token={reset_token}"
+            logger.info(f"Password reset requested for {email}")
+            logger.info(f"Reset URL: {reset_url}")
+
+            return {
+                'success': True,
+                'message': 'Password reset link sent to your email',
+                'reset_url': reset_url  # Only for development
+            }
+
+        except Exception as e:
+            logger.error(f"Error requesting password reset: {e}")
+            return {'success': False, 'message': 'Failed to process password reset request'}
+
+    def reset_password(self, reset_token, new_password):
+        """Reset password using a reset token"""
+        try:
+            if not hasattr(self, 'reset_tokens') or reset_token not in self.reset_tokens:
+                return {'success': False, 'message': 'Invalid or expired reset token'}
+
+            token_data = self.reset_tokens[reset_token]
+
+            # Check if token is expired
+            if datetime.now() > token_data['expires']:
+                del self.reset_tokens[reset_token]
+                return {'success': False, 'message': 'Reset token has expired'}
+
+            # Find user
+            user = User.query.get(token_data['user_id'])
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+
+            # Update password
+            user.set_password(new_password)
+            user.updated_at = datetime.now()
+            db.session.commit()
+
+            # Remove used token
+            del self.reset_tokens[reset_token]
+
+            logger.info(f"Password reset successful for user: {user.email}")
+            return {'success': True, 'message': 'Password reset successfully'}
+
+        except Exception as e:
+            logger.error(f"Error resetting password: {e}")
+            return {'success': False, 'message': 'Failed to reset password'}

@@ -508,6 +508,63 @@ def bad_request(error):
 def unauthorized(error):
     return jsonify(create_response(False, "Unauthorized")), 401
 
+@auth_bp.route('/request-password-reset', methods=['POST'])
+def request_password_reset():
+    """Request a password reset"""
+    try:
+        data = request.get_json()
+        if not data or 'email' not in data:
+            return jsonify(create_response(False, "Email is required")), 400
+
+        email = data['email'].strip().lower()
+
+        # Validate email format
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            return jsonify(create_response(False, "Invalid email format")), 400
+
+        auth_service = AuthService()
+        result = auth_service.request_password_reset(email)
+
+        if result['success']:
+            return jsonify(create_response(
+                True,
+                result['message'],
+                {'reset_url': result.get('reset_url')}  # Only for development
+            )), 200
+        else:
+            return jsonify(create_response(False, result['message'])), 400
+
+    except Exception as e:
+        logger.error(f"Password reset request error: {str(e)}")
+        return jsonify(create_response(False, "Failed to process password reset request")), 500
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """Reset password using a reset token"""
+    try:
+        data = request.get_json()
+        if not data or 'reset_token' not in data or 'new_password' not in data:
+            return jsonify(create_response(False, "Reset token and new password are required")), 400
+
+        reset_token = data['reset_token']
+        new_password = data['new_password']
+
+        # Validate password
+        if len(new_password) < 6:
+            return jsonify(create_response(False, "Password must be at least 6 characters long")), 400
+
+        auth_service = AuthService()
+        result = auth_service.reset_password(reset_token, new_password)
+
+        if result['success']:
+            return jsonify(create_response(True, result['message'])), 200
+        else:
+            return jsonify(create_response(False, result['message'])), 400
+
+    except Exception as e:
+        logger.error(f"Password reset error: {str(e)}")
+        return jsonify(create_response(False, "Failed to reset password")), 500
+
 @auth_bp.errorhandler(403)
 def forbidden(error):
     return jsonify(create_response(False, "Forbidden")), 403
