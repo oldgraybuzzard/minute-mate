@@ -140,16 +140,105 @@
 
             <!-- Content Grid -->
             <div class="dashboard-content">
-                <!-- Recent Meetings -->
+                <!-- Enhanced Meeting History -->
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h3><i class="fas fa-history"></i> Recent Meetings</h3>
-                        <a href="#" class="view-all-link" id="view-all-meetings">View All</a>
+                        <h3><i class="fas fa-history"></i> Meeting History</h3>
+                        <div class="section-controls">
+                            <button class="btn secondary" id="toggle-filters">
+                                <i class="fas fa-filter"></i> Filters
+                            </button>
+                            <button class="btn secondary" id="refresh-meetings">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
                     </div>
-                    <div class="recent-meetings" id="recent-meetings">
-                        <div class="loading-placeholder">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>Loading recent meetings...</p>
+
+                    <!-- Meeting Filters -->
+                    <div class="meeting-filters" id="meeting-filters" style="display: none;">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="search-input">Search:</label>
+                                <input type="text" id="search-input" placeholder="Search meetings by title, attendees, or content...">
+                            </div>
+                            <div class="filter-group">
+                                <label for="status-filter">Status:</label>
+                                <select id="status-filter">
+                                    <option value="">All Status</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="processing">Processing</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="date-filter">Date Range:</label>
+                                <select id="date-filter">
+                                    <option value="">All Time</option>
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month">This Month</option>
+                                    <option value="quarter">This Quarter</option>
+                                    <option value="year">This Year</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="sort-by">Sort By:</label>
+                                <select id="sort-by">
+                                    <option value="created_at_desc">Newest First</option>
+                                    <option value="created_at_asc">Oldest First</option>
+                                    <option value="title_asc">Title A-Z</option>
+                                    <option value="title_desc">Title Z-A</option>
+                                    <option value="duration_desc">Longest First</option>
+                                    <option value="duration_asc">Shortest First</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn primary" id="apply-filters">Apply Filters</button>
+                            <button class="btn secondary" id="clear-filters">Clear All</button>
+                        </div>
+                    </div>
+
+                    <!-- Meeting List -->
+                    <div class="meeting-list-container">
+                        <div class="meeting-list-header">
+                            <div class="results-info">
+                                <span id="results-count">Loading...</span>
+                                <span id="results-total"></span>
+                            </div>
+                            <div class="view-options">
+                                <button class="view-toggle active" id="grid-view" title="Grid View">
+                                    <i class="fas fa-th"></i>
+                                </button>
+                                <button class="view-toggle" id="list-view" title="List View">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="recent-meetings" id="recent-meetings">
+                            <div class="loading-placeholder">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading meetings...</p>
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="pagination-container" id="pagination-container" style="display: none;">
+                            <div class="pagination-info">
+                                <span id="pagination-info">Showing 1-10 of 25 meetings</span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="btn secondary" id="prev-page" disabled>
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                                <div class="page-numbers" id="page-numbers">
+                                    <!-- Page numbers will be inserted here -->
+                                </div>
+                                <button class="btn secondary" id="next-page">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -4,7 +4,8 @@ Handles meeting history, dashboard, and management endpoints
 """
 
 import logging
-from flask import Blueprint, request, jsonify
+import os
+from flask import Blueprint, request, jsonify, send_file
 from flask_login import login_required, current_user
 from meeting_service import MeetingService
 from models import db, Meeting
@@ -232,6 +233,158 @@ def get_recent():
     except Exception as e:
         logger.error(f"Recent meetings endpoint error: {str(e)}")
         return jsonify(create_response(False, "Failed to get recent meetings")), 500
+
+@meeting_bp.route('/list', methods=['GET'])
+@login_required
+def get_meetings_list():
+    """Get paginated and filtered list of meetings for the user"""
+    try:
+        from sqlalchemy import or_, and_, desc, asc
+        from datetime import datetime, timedelta
+
+        # Get query parameters
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 10)), 50)  # Max 50 items per page
+        search = request.args.get('search', '').strip()
+        status_filter = request.args.get('status', '').strip()
+        date_range = request.args.get('date_range', '').strip()
+        sort_by = request.args.get('sort_by', 'created_at_desc')
+
+        # Build base query
+        query = Meeting.query.filter_by(user_id=current_user.id)
+
+        # Apply search filter
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Meeting.title.ilike(search_term),
+                    Meeting.transcript.ilike(search_term),
+                    Meeting.summary.ilike(search_term)
+                )
+            )
+
+        # Apply status filter
+        if status_filter:
+            query = query.filter(Meeting.status == status_filter)
+
+        # Apply date range filter
+        if date_range:
+            now = datetime.utcnow()
+            if date_range == 'today':
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                query = query.filter(Meeting.created_at >= start_date)
+            elif date_range == 'week':
+                start_date = now - timedelta(days=7)
+                query = query.filter(Meeting.created_at >= start_date)
+            elif date_range == 'month':
+                start_date = now - timedelta(days=30)
+                query = query.filter(Meeting.created_at >= start_date)
+            elif date_range == 'quarter':
+                start_date = now - timedelta(days=90)
+                query = query.filter(Meeting.created_at >= start_date)
+            elif date_range == 'year':
+                start_date = now - timedelta(days=365)
+                query = query.filter(Meeting.created_at >= start_date)
+
+        # Apply sorting
+        if sort_by == 'created_at_desc':
+            query = query.order_by(desc(Meeting.created_at))
+        elif sort_by == 'created_at_asc':
+            query = query.order_by(asc(Meeting.created_at))
+        elif sort_by == 'title_asc':
+            query = query.order_by(asc(Meeting.title))
+        elif sort_by == 'title_desc':
+            query = query.order_by(desc(Meeting.title))
+        elif sort_by == 'duration_desc':
+            query = query.order_by(desc(Meeting.duration))
+        elif sort_by == 'duration_asc':
+            query = query.order_by(asc(Meeting.duration))
+        else:
+            query = query.order_by(desc(Meeting.created_at))
+
+        # Get total count before pagination
+        total_count = query.count()
+
+        # Apply pagination
+        offset = (page - 1) * limit
+        meetings = query.offset(offset).limit(limit).all()
+
+        # Format meeting data
+        meetings_data = []
+        for meeting in meetings:
+            # Calculate attendees count from transcript if available
+            attendees_count = None
+            if meeting.transcript:
+                # Simple heuristic: count unique speaker patterns
+                import re
+                speakers = set(re.findall(r'^([A-Z][a-z]+ [A-Z][a-z]+):', meeting.transcript, re.MULTILINE))
+                attendees_count = len(speakers) if speakers else None
+
+            meetings_data.append({
+                'id': meeting.id,
+                'title': meeting.title,
+                'status': meeting.status,
+                'created_at': meeting.created_at.isoformat(),
+                'updated_at': meeting.updated_at.isoformat(),
+                'duration': meeting.duration,
+                'attendees_count': attendees_count,
+                'has_transcript': bool(meeting.transcript),
+                'has_summary': bool(meeting.summary),
+                'has_document': bool(meeting.document_path)
+            })
+
+        # Calculate pagination info
+        total_pages = (total_count + limit - 1) // limit
+        has_next = page < total_pages
+        has_prev = page > 1
+
+        pagination_info = {
+            'page': page,
+            'limit': limit,
+            'total': total_count,
+            'total_pages': total_pages,
+            'has_next': has_next,
+            'has_prev': has_prev,
+            'filtered': total_count  # For now, same as total
+        }
+
+        return jsonify(create_response(
+            True,
+            "Meetings list retrieved",
+            {
+                'meetings': meetings_data,
+                'pagination': pagination_info
+            }
+        )), 200
+
+    except Exception as e:
+        logger.error(f"Meetings list endpoint error: {str(e)}")
+        return jsonify(create_response(False, "Failed to load meetings list")), 500
+
+@meeting_bp.route('/<meeting_id>/download', methods=['GET'])
+@login_required
+def download_meeting(meeting_id):
+    """Download meeting document"""
+    try:
+        meeting = Meeting.query.filter_by(id=meeting_id, user_id=current_user.id).first()
+
+        if not meeting:
+            return jsonify(create_response(False, "Meeting not found")), 404
+
+        if not meeting.document_path or not os.path.exists(meeting.document_path):
+            return jsonify(create_response(False, "Document not available")), 404
+
+        return send_file(
+            meeting.document_path,
+            as_attachment=True,
+            download_name=f"meeting-{meeting.title or meeting.id}.docx",
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+
+    except Exception as e:
+        logger.error(f"Download meeting endpoint error: {str(e)}")
+        return jsonify(create_response(False, "Failed to download meeting")), 500
 
 # Error handlers for the meeting blueprint
 @meeting_bp.errorhandler(400)

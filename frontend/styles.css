@@ -5927,3 +5927,284 @@ body {
         margin: 20px;
     }
 }
+
+/* Enhanced Meeting History Styles */
+.section-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.meeting-filters {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s ease;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.meeting-list-container {
+    background: white;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.meeting-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.results-info {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.view-options {
+    display: flex;
+    gap: 5px;
+}
+
+.view-toggle {
+    background: none;
+    border: 1px solid var(--gray-300);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--gray-600);
+    transition: all 0.2s ease;
+}
+
+.view-toggle:hover {
+    background: var(--gray-100);
+    color: var(--gray-800);
+}
+
+.view-toggle.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+}
+
+.pagination-info {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 5px;
+}
+
+.page-number {
+    background: none;
+    border: 1px solid var(--gray-300);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--gray-600);
+    transition: all 0.2s ease;
+    min-width: 40px;
+    text-align: center;
+}
+
+.page-number:hover {
+    background: var(--gray-100);
+    color: var(--gray-800);
+}
+
+.page-number.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.page-number:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* List View Styles */
+.recent-meetings.list-view .meeting-card {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    border-radius: 0;
+}
+
+.recent-meetings.list-view .meeting-card:last-child {
+    border-bottom: none;
+}
+
+.recent-meetings.list-view .meeting-info {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    gap: 20px;
+    align-items: center;
+}
+
+.recent-meetings.list-view .meeting-title {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.recent-meetings.list-view .meeting-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85rem;
+}
+
+.recent-meetings.list-view .meeting-actions {
+    margin: 0;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .meeting-filters {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .filter-group label {
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .filter-group input,
+[data-theme="dark"] .filter-group select {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .meeting-list-header,
+[data-theme="dark"] .pagination-container {
+    background: var(--gray-200);
+    border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .view-toggle {
+    border-color: var(--gray-400);
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .view-toggle:hover {
+    background: var(--gray-300);
+    color: var(--gray-900);
+}
+
+[data-theme="dark"] .page-number {
+    border-color: var(--gray-400);
+    color: var(--gray-800);
+}
+
+[data-theme="dark"] .page-number:hover {
+    background: var(--gray-300);
+    color: var(--gray-900);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .filter-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .meeting-list-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+
+    .section-controls {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .recent-meetings.list-view .meeting-info {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .page-numbers {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}

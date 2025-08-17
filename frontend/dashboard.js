@@ -33,6 +33,38 @@ class DashboardApp {
         // Dashboard elements
         this.refreshBtn = document.getElementById('refresh-dashboard');
         this.recentMeetings = document.getElementById('recent-meetings');
+
+        // Enhanced meeting history elements
+        this.toggleFiltersBtn = document.getElementById('toggle-filters');
+        this.meetingFilters = document.getElementById('meeting-filters');
+        this.refreshMeetingsBtn = document.getElementById('refresh-meetings');
+        this.searchInput = document.getElementById('search-input');
+        this.statusFilter = document.getElementById('status-filter');
+        this.dateFilter = document.getElementById('date-filter');
+        this.sortBy = document.getElementById('sort-by');
+        this.applyFiltersBtn = document.getElementById('apply-filters');
+        this.clearFiltersBtn = document.getElementById('clear-filters');
+        this.gridViewBtn = document.getElementById('grid-view');
+        this.listViewBtn = document.getElementById('list-view');
+        this.resultsCount = document.getElementById('results-count');
+        this.resultsTotal = document.getElementById('results-total');
+        this.paginationContainer = document.getElementById('pagination-container');
+        this.paginationInfo = document.getElementById('pagination-info');
+        this.prevPageBtn = document.getElementById('prev-page');
+        this.nextPageBtn = document.getElementById('next-page');
+        this.pageNumbers = document.getElementById('page-numbers');
+
+        // Meeting history state
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
+        this.totalMeetings = 0;
+        this.currentView = 'grid';
+        this.currentFilters = {
+            search: '',
+            status: '',
+            dateRange: '',
+            sortBy: 'created_at_desc'
+        };
         
         // Statistics elements
         this.totalMeetings = document.getElementById('total-meetings');
@@ -99,6 +131,42 @@ class DashboardApp {
 
         // Dashboard actions
         this.refreshBtn.addEventListener('click', this.loadDashboardData.bind(this));
+
+        // Enhanced meeting history events
+        this.toggleFiltersBtn.addEventListener('click', this.toggleFilters.bind(this));
+        this.refreshMeetingsBtn.addEventListener('click', this.loadMeetings.bind(this));
+        this.applyFiltersBtn.addEventListener('click', this.applyFilters.bind(this));
+        this.clearFiltersBtn.addEventListener('click', this.clearFilters.bind(this));
+        this.gridViewBtn.addEventListener('click', () => this.setView('grid'));
+        this.listViewBtn.addEventListener('click', () => this.setView('list'));
+        this.prevPageBtn.addEventListener('click', this.previousPage.bind(this));
+        this.nextPageBtn.addEventListener('click', this.nextPage.bind(this));
+
+        // Search input with debounce
+        let searchTimeout;
+        this.searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.currentFilters.search = this.searchInput.value;
+                this.applyFilters();
+            }, 500);
+        });
+
+        // Filter change events
+        this.statusFilter.addEventListener('change', () => {
+            this.currentFilters.status = this.statusFilter.value;
+            this.applyFilters();
+        });
+
+        this.dateFilter.addEventListener('change', () => {
+            this.currentFilters.dateRange = this.dateFilter.value;
+            this.applyFilters();
+        });
+
+        this.sortBy.addEventListener('change', () => {
+            this.currentFilters.sortBy = this.sortBy.value;
+            this.applyFilters();
+        });
         
         // Search functionality
         document.getElementById('search-meetings').addEventListener('click', this.openSearchModal.bind(this));
@@ -211,7 +279,8 @@ class DashboardApp {
                 const result = await response.json();
                 if (result.success) {
                     this.updateStatistics(result.data.statistics);
-                    this.updateRecentMeetings(result.data.recent_meetings);
+                    // Load meetings with enhanced filtering
+                    this.loadMeetings();
                 } else {
                     throw new Error(result.message);
                 }
@@ -722,6 +791,285 @@ ${meeting.attendees ? `Attendees: ${meeting.attendees.length}` : ''}
             document.body.classList.toggle('dark-theme', prefersDark);
         } else {
             document.body.classList.toggle('dark-theme', theme === 'dark');
+        }
+    }
+
+    // Enhanced Meeting History Methods
+    toggleFilters() {
+        const isVisible = this.meetingFilters.style.display !== 'none';
+        this.meetingFilters.style.display = isVisible ? 'none' : 'block';
+        this.toggleFiltersBtn.innerHTML = isVisible ?
+            '<i class="fas fa-filter"></i> Filters' :
+            '<i class="fas fa-filter"></i> Hide Filters';
+    }
+
+    async loadMeetings() {
+        try {
+            this.showLoading('Loading meetings...');
+
+            // Build query parameters
+            const params = new URLSearchParams({
+                page: this.currentPage,
+                limit: this.itemsPerPage,
+                search: this.currentFilters.search,
+                status: this.currentFilters.status,
+                date_range: this.currentFilters.dateRange,
+                sort_by: this.currentFilters.sortBy
+            });
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/list?${params}`, {
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    this.updateMeetingsList(result.data.meetings);
+                    this.updatePagination(result.data.pagination);
+                    this.updateResultsInfo(result.data.pagination);
+                } else {
+                    throw new Error(result.message);
+                }
+            } else {
+                throw new Error('Failed to load meetings');
+            }
+        } catch (error) {
+            console.error('Error loading meetings:', error);
+            this.showToast('Failed to load meetings', 'error');
+            this.recentMeetings.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error loading meetings</h3>
+                    <p>Please try refreshing the page.</p>
+                </div>
+            `;
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    updateMeetingsList(meetings) {
+        if (!meetings || meetings.length === 0) {
+            this.recentMeetings.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h3>No meetings found</h3>
+                    <p>Try adjusting your filters or search terms.</p>
+                    <button class="btn primary" id="clear-search-filters">Clear Filters</button>
+                </div>
+            `;
+
+            // Add event listener for clear filters button
+            const clearBtn = document.getElementById('clear-search-filters');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', this.clearFilters.bind(this));
+            }
+            return;
+        }
+
+        const meetingsHtml = meetings.map(meeting => `
+            <div class="meeting-card" data-meeting-id="${meeting.id}">
+                <div class="meeting-header">
+                    <h4 class="meeting-title">${meeting.title || 'Untitled Meeting'}</h4>
+                    <span class="meeting-status status-${meeting.status}">${meeting.status}</span>
+                </div>
+                <div class="meeting-info">
+                    <div class="meeting-meta">
+                        <span><i class="fas fa-calendar"></i> ${new Date(meeting.created_at).toLocaleDateString()}</span>
+                        <span><i class="fas fa-clock"></i> ${meeting.duration || 'N/A'}</span>
+                        ${meeting.attendees_count ? `<span><i class="fas fa-users"></i> ${meeting.attendees_count} attendees</span>` : ''}
+                    </div>
+                    <div class="meeting-actions">
+                        <button class="btn secondary small" onclick="dashboardApp.viewMeeting('${meeting.id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        ${meeting.status === 'completed' ? `
+                            <button class="btn primary small" onclick="dashboardApp.downloadMeeting('${meeting.id}')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        ` : ''}
+                        <button class="btn secondary small" onclick="dashboardApp.deleteMeeting('${meeting.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        this.recentMeetings.innerHTML = meetingsHtml;
+        this.recentMeetings.className = `recent-meetings ${this.currentView}-view`;
+    }
+
+    updatePagination(pagination) {
+        this.totalMeetings = pagination.total;
+        const totalPages = Math.ceil(pagination.total / this.itemsPerPage);
+
+        if (totalPages <= 1) {
+            this.paginationContainer.style.display = 'none';
+            return;
+        }
+
+        this.paginationContainer.style.display = 'flex';
+
+        // Update pagination info
+        const start = (this.currentPage - 1) * this.itemsPerPage + 1;
+        const end = Math.min(this.currentPage * this.itemsPerPage, pagination.total);
+        this.paginationInfo.textContent = `Showing ${start}-${end} of ${pagination.total} meetings`;
+
+        // Update navigation buttons
+        this.prevPageBtn.disabled = this.currentPage <= 1;
+        this.nextPageBtn.disabled = this.currentPage >= totalPages;
+
+        // Generate page numbers
+        this.generatePageNumbers(totalPages);
+    }
+
+    generatePageNumbers(totalPages) {
+        const maxVisible = 5;
+        let startPage = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+        if (endPage - startPage + 1 < maxVisible) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        let pagesHtml = '';
+
+        // First page and ellipsis
+        if (startPage > 1) {
+            pagesHtml += `<button class="page-number" onclick="dashboardApp.goToPage(1)">1</button>`;
+            if (startPage > 2) {
+                pagesHtml += `<span class="page-ellipsis">...</span>`;
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            pagesHtml += `<button class="page-number ${i === this.currentPage ? 'active' : ''}"
+                         onclick="dashboardApp.goToPage(${i})">${i}</button>`;
+        }
+
+        // Last page and ellipsis
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                pagesHtml += `<span class="page-ellipsis">...</span>`;
+            }
+            pagesHtml += `<button class="page-number" onclick="dashboardApp.goToPage(${totalPages})">${totalPages}</button>`;
+        }
+
+        this.pageNumbers.innerHTML = pagesHtml;
+    }
+
+    updateResultsInfo(pagination) {
+        this.resultsCount.textContent = `${pagination.total} meetings`;
+        this.resultsTotal.textContent = pagination.total > 0 ?
+            `(${pagination.filtered} filtered)` : '';
+    }
+
+    applyFilters() {
+        this.currentPage = 1; // Reset to first page
+        this.loadMeetings();
+    }
+
+    clearFilters() {
+        this.currentFilters = {
+            search: '',
+            status: '',
+            dateRange: '',
+            sortBy: 'created_at_desc'
+        };
+
+        // Reset form elements
+        this.searchInput.value = '';
+        this.statusFilter.value = '';
+        this.dateFilter.value = '';
+        this.sortBy.value = 'created_at_desc';
+
+        this.applyFilters();
+    }
+
+    setView(view) {
+        this.currentView = view;
+        this.gridViewBtn.classList.toggle('active', view === 'grid');
+        this.listViewBtn.classList.toggle('active', view === 'list');
+        this.recentMeetings.className = `recent-meetings ${view}-view`;
+    }
+
+    goToPage(page) {
+        this.currentPage = page;
+        this.loadMeetings();
+    }
+
+    previousPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.loadMeetings();
+        }
+    }
+
+    nextPage() {
+        const totalPages = Math.ceil(this.totalMeetings / this.itemsPerPage);
+        if (this.currentPage < totalPages) {
+            this.currentPage++;
+            this.loadMeetings();
+        }
+    }
+
+    async downloadMeeting(meetingId) {
+        try {
+            this.showLoading('Preparing download...');
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/${meetingId}/download`, {
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `meeting-${meetingId}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                this.showToast('Meeting downloaded successfully', 'success');
+            } else {
+                throw new Error('Failed to download meeting');
+            }
+        } catch (error) {
+            console.error('Error downloading meeting:', error);
+            this.showToast('Failed to download meeting', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async deleteMeeting(meetingId) {
+        if (!confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            this.showLoading('Deleting meeting...');
+
+            const response = await fetch(`${this.apiBaseUrl}/api/meetings/${meetingId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                this.showToast('Meeting deleted successfully', 'success');
+                this.loadMeetings(); // Refresh the list
+            } else {
+                throw new Error('Failed to delete meeting');
+            }
+        } catch (error) {
+            console.error('Error deleting meeting:', error);
+            this.showToast('Failed to delete meeting', 'error');
+        } finally {
+            this.hideLoading();
         }
     }
 }
