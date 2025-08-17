@@ -1361,81 +1361,26 @@ class MinuteMateApp {
     }
 
     updateUIForAuthenticatedUser() {
-        // Add user info to header if authenticated
+        // Update existing user menu with authenticated user info
         if (this.currentUser) {
-            const headerControls = document.querySelector('.header-controls');
-            if (headerControls && !document.querySelector('.user-menu')) {
-                const userMenu = document.createElement('div');
-                userMenu.className = 'user-menu';
-                userMenu.innerHTML = `
-                    <button class="user-menu-toggle" title="User menu">
-                        <i class="fas fa-user-circle"></i>
-                        <span>${this.currentUser.first_name}</span>
-                    </button>
-                    <div class="user-dropdown">
-                        <div class="user-info">
-                            <strong>${this.currentUser.full_name}</strong>
-                            <small>${this.currentUser.email}</small>
-                        </div>
-                        <hr>
-                        <a href="/frontend/dashboard.html" class="dropdown-item">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                        <a href="/frontend/templates.html" class="dropdown-item">
-                            <i class="fas fa-file-alt"></i> Templates
-                        </a>
-                        <a href="/frontend/calendar.html" class="dropdown-item">
-                            <i class="fas fa-calendar-alt"></i> Calendar
-                        </a>
-                        <a href="/frontend/batch.html" class="dropdown-item">
-                            <i class="fas fa-layer-group"></i> Batch Processing
-                        </a>
-                        <a href="/frontend/profile.html" class="dropdown-item">
-                            <i class="fas fa-user-cog"></i> Profile & Settings
-                        </a>
-                        <a href="#" class="dropdown-item" id="user-meetings">
-                            <i class="fas fa-history"></i> Meeting History
-                        </a>
-                        <a href="#" class="dropdown-item" id="user-settings">
-                            <i class="fas fa-cog"></i> Settings
-                        </a>
-                        <hr>
-                        <a href="#" class="dropdown-item" id="user-logout">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
-                    </div>
-                `;
+            const existingUserMenu = document.getElementById('user-menu');
+            if (existingUserMenu) {
+                // Update user info in existing menu
+                const userName = document.getElementById('user-name');
+                const userFullName = document.getElementById('user-full-name');
+                const userEmail = document.getElementById('user-email');
 
-                // Insert before theme toggle
-                headerControls.insertBefore(userMenu, this.themeToggle);
+                if (userName) userName.textContent = this.currentUser.first_name || this.currentUser.username;
+                if (userFullName) userFullName.textContent = this.currentUser.full_name || `${this.currentUser.first_name} ${this.currentUser.last_name}`;
+                if (userEmail) userEmail.textContent = this.currentUser.email;
 
-                // Add event listeners
-                this.setupUserMenu(userMenu);
+                // Show the user menu
+                existingUserMenu.style.display = 'block';
             }
         }
     }
 
-    setupUserMenu(userMenu) {
-        const toggle = userMenu.querySelector('.user-menu-toggle');
-        const dropdown = userMenu.querySelector('.user-dropdown');
 
-        toggle.addEventListener('click', () => {
-            dropdown.classList.toggle('show');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!userMenu.contains(e.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-
-        // Logout functionality
-        userMenu.querySelector('#user-logout').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await this.logout();
-        });
-    }
 
     async logout() {
         try {
