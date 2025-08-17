@@ -215,3 +215,13 @@ venv/
 *.wav
 *.mp3
 output/
+
+# MinuteMate specific files
+*.db
+*.db-shm
+*.db-wal
+uploads/
+cookies.txt
+test_transcript.txt
+*.tmp
+*.temp
