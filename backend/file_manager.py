@@ -38,12 +38,18 @@ class FileValidator:
                 'video/mp4', 'video/x-msvideo', 'video/quicktime',
                 'video/x-matroska', 'video/x-ms-wmv', 'video/x-flv',
                 'video/webm', 'video/avi', 'video/3gpp', 'video/x-ms-asf'
+            },
+            'transcript': {
+                'text/plain', 'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/rtf', 'text/rtf'
             }
         }
         
         self.allowed_extensions = {
             'audio': {'.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.wma'},
-            'video': {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.3gp'}
+            'video': {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.3gp'},
+            'transcript': {'.txt', '.docx', '.doc', '.rtf'}
         }
         
         # Security patterns to detect potentially malicious files
@@ -84,8 +90,10 @@ class FileValidator:
         
         # Check for valid extension
         file_ext = Path(filename).suffix.lower()
-        all_extensions = self.allowed_extensions['audio'] | self.allowed_extensions['video']
-        
+        all_extensions = (self.allowed_extensions['audio'] |
+                         self.allowed_extensions['video'] |
+                         self.allowed_extensions['transcript'])
+
         if file_ext not in all_extensions:
             return False, f"Unsupported file extension: {file_ext}"
         
@@ -146,11 +154,17 @@ class FileValidator:
                     '.mkv': 'video/x-matroska',
                     '.wmv': 'video/x-ms-wmv',
                     '.flv': 'video/x-flv',
-                    '.webm': 'video/webm'
+                    '.webm': 'video/webm',
+                    '.txt': 'text/plain',
+                    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    '.doc': 'application/msword',
+                    '.rtf': 'application/rtf'
                 }
                 detected_mime = mime_map.get(ext, 'application/octet-stream')
             
-            all_allowed_mimes = self.allowed_mimes['audio'] | self.allowed_mimes['video']
+            all_allowed_mimes = (self.allowed_mimes['audio'] |
+                                 self.allowed_mimes['video'] |
+                                 self.allowed_mimes['transcript'])
             
             if detected_mime not in all_allowed_mimes:
                 return False, f"Invalid file type detected: {detected_mime}", detected_mime
@@ -234,6 +248,8 @@ class FileValidator:
                 results['file_info']['file_type'] = 'audio'
             elif detected_mime in self.allowed_mimes['video']:
                 results['file_info']['file_type'] = 'video'
+            elif detected_mime in self.allowed_mimes['transcript']:
+                results['file_info']['file_type'] = 'transcript'
         
         # Scan for malicious content
         safe, warning = self.scan_for_malicious_content(file_path)

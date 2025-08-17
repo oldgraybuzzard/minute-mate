@@ -193,7 +193,68 @@ class AIProcessor:
         elif self.provider == 'anthropic':
             return ANTHROPIC_AVAILABLE and self.anthropic_client is not None
         return False
-    
+
+    def _call_ai_provider(self, prompt: str) -> str:
+        """Call the appropriate AI provider with the given prompt"""
+        if self.provider == 'openai':
+            return self._call_openai(prompt)
+        elif self.provider == 'gemini':
+            return self._call_gemini(prompt)
+        elif self.provider == 'anthropic':
+            return self._call_anthropic(prompt)
+        else:
+            raise ValueError(f"Unknown AI provider: {self.provider}")
+
+    def _call_openai(self, prompt: str) -> str:
+        """Call OpenAI API"""
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert meeting secretary who creates professional meeting minutes from transcripts. Always respond with valid JSON."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            max_tokens=self.max_tokens,
+            temperature=self.temperature
+        )
+        return response.choices[0].message.content.strip()
+
+    def _call_gemini(self, prompt: str) -> str:
+        """Call Google Gemini API"""
+        full_prompt = """You are an expert meeting secretary who creates professional meeting minutes from transcripts. Always respond with valid JSON.
+
+""" + prompt
+
+        response = self.gemini_client.generate_content(
+            full_prompt,
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=self.max_tokens,
+                temperature=self.temperature,
+            )
+        )
+        return response.text.strip()
+
+    def _call_anthropic(self, prompt: str) -> str:
+        """Call Anthropic Claude API"""
+        response = self.anthropic_client.messages.create(
+            model=self.model,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            system="You are an expert meeting secretary who creates professional meeting minutes from transcripts. Always respond with valid JSON.",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+        return response.content[0].text.strip()
+
     def process_transcript(self, transcript_text: str, filename: str = "") -> Dict[str, Any]:
         """
         Process meeting transcript using AI
@@ -223,37 +284,36 @@ class AIProcessor:
 
             # Create the prompt
             prompt = self._create_analysis_prompt(transcript_text)
-            
-            # Call OpenAI API
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert meeting secretary who creates professional meeting minutes from transcripts. Always respond with valid JSON."
-                    },
-                    {
-                        "role": "user", 
-                        "content": prompt
-                    }
-                ],
-                max_tokens=self.max_tokens,
-                temperature=self.temperature
-            )
-            
-            # Parse the response
-            ai_response = response.choices[0].message.content.strip()
+
+            # Call the appropriate AI provider
+            ai_response = self._call_ai_provider(prompt)
             logger.info(f"AI response received: {len(ai_response)} characters")
             
             # Try to parse as JSON
             try:
+                # First try direct JSON parsing
                 meeting_minutes = json.loads(ai_response)
                 logger.info("Successfully parsed AI response as JSON")
                 return meeting_minutes
-                
+
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse AI response as JSON: {str(e)}")
+                # If direct parsing fails, try to extract JSON from markdown code blocks
+                logger.warning(f"Direct JSON parsing failed: {str(e)}")
                 logger.debug(f"AI response content: {ai_response[:500]}...")
+
+                # Try to extract JSON from markdown code blocks
+                import re
+                json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', ai_response, re.DOTALL)
+                if json_match:
+                    try:
+                        json_content = json_match.group(1)
+                        meeting_minutes = json.loads(json_content)
+                        logger.info("Successfully extracted and parsed JSON from markdown")
+                        return meeting_minutes
+                    except json.JSONDecodeError as e2:
+                        logger.error(f"Failed to parse extracted JSON: {str(e2)}")
+
+                logger.error("Could not extract valid JSON from AI response")
                 return self._create_fallback_response(transcript_text, filename)
                 
         except Exception as e:
@@ -489,17 +549,8 @@ Please provide a JSON response focusing on what's discussed in this chunk:
 Respond ONLY with valid JSON.
 """
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": "You are an expert meeting secretary analyzing transcript chunks. Always respond with valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=self.max_tokens,
-            temperature=self.temperature
-        )
-
-        ai_response = response.choices[0].message.content.strip()
+        # Use provider-agnostic AI calling
+        ai_response = self._call_ai_provider(prompt)
         return json.loads(ai_response)
 
     def _merge_chunk_results(self, chunk_results: List[Dict[str, Any]], filename: str) -> Dict[str, Any]:

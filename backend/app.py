@@ -9,6 +9,10 @@ import time
 import requests
 import tempfile
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 from flask import Flask, request, jsonify, send_file, g, send_from_directory
 from flask_cors import CORS
 from flask_login import LoginManager, login_required, current_user
@@ -313,7 +317,8 @@ def allowed_file(filename):
     config_obj = app.config
     allowed_audio = config_obj.get('ALLOWED_AUDIO_EXTENSIONS', set())
     allowed_video = config_obj.get('ALLOWED_VIDEO_EXTENSIONS', set())
-    allowed_extensions = allowed_audio | allowed_video
+    allowed_transcript = {'txt', 'pdf', 'docx', 'doc', 'rtf'}  # Transcript file extensions
+    allowed_extensions = allowed_audio | allowed_video | allowed_transcript
 
     return extension in allowed_extensions
 
@@ -392,7 +397,7 @@ def process_transcript_text(transcript_text, job_id, form_data):
             'message': f'Failed to process transcript: {str(e)}'
         }), 500
 
-def process_transcript_file(file, job_id, form_data):
+def process_transcript_file(file, job_id, form_data, storage_result):
     """Process uploaded transcript file"""
     logger = logging.getLogger(__name__)
 
@@ -401,26 +406,7 @@ def process_transcript_file(file, job_id, form_data):
         language = form_data.get('language', 'auto')
         format_type = form_data.get('format', 'formal')
 
-        # Store the uploaded file
-        storage_result = file_storage.store_uploaded_file(
-            uploaded_file=file,
-            original_filename=file.filename,
-            job_id=job_id,
-            max_size_bytes=app.config['MAX_CONTENT_LENGTH']
-        )
-
-        # Create job entry
-        file_info = storage_result.get('file_info', {})
-        file_size = file_info.get('size_bytes', 0)
-        formatted_size = format_file_size(file_size) if file_size else "Unknown size"
-
-        job_tracker.create_job(
-            job_id=job_id,
-            filename=file.filename,
-            file_size=formatted_size,
-            file_path=storage_result.get('file_path'),
-            source_type='transcript_file'
-        )
+        # File is already stored and job is already created, just use the storage result
 
         # Start processing in background
         def process_transcript_file_background():
@@ -783,7 +769,13 @@ def upload_file():
             response_data['warnings'] = storage_result['warnings']
 
         # Start processing the job automatically
-        app.mock_processor.start_processing(job_id)
+        file_type = storage_result.get('file_info', {}).get('file_type', 'unknown')
+        if file_type == 'transcript':
+            # Process transcript file with AI
+            process_transcript_file(file, job_id, request.form, storage_result)
+        else:
+            # Process audio/video file with mock processor (for now)
+            app.mock_processor.start_processing(job_id)
 
         # Record successful request
         health_monitor.record_request(True, time.time() - g.start_time)
@@ -993,6 +985,7 @@ def upload_from_url():
             }
 
             # Start processing the job automatically
+            # Note: URL downloads are typically audio/video, so use mock processor for now
             app.mock_processor.start_processing(job_id)
 
             # Record successful request
