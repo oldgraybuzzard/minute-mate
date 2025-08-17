@@ -349,6 +349,30 @@ def process_transcript_text(transcript_text, job_id, form_data):
             source_type='transcript_text'
         )
 
+        # Create Meeting record in database immediately
+        from models import Meeting, db, User
+        from datetime import datetime, timezone
+
+        # Get user ID - use current_user if authenticated, otherwise use first available user
+        user_id = current_user.id if current_user and current_user.is_authenticated else User.query.first().id
+
+        meeting = Meeting(
+            user_id=user_id,
+            title='Processing Transcript...',
+            description=f"Meeting being processed from transcript upload",
+            meeting_date=datetime.now(timezone.utc),
+            original_filename='transcript.txt',
+            file_type='text/plain',
+            job_id=job_id,
+            status='processing',
+            transcript=transcript_text
+        )
+
+        db.session.add(meeting)
+        db.session.commit()
+        meeting_id = meeting.id
+        logger.info(f"Created Meeting record {meeting_id} for job {job_id}")
+
         # Start processing in background
         def process_transcript_background():
             try:
@@ -369,10 +393,54 @@ def process_transcript_text(transcript_text, job_id, form_data):
                 # Store results using document generator
                 results_path = store_meeting_minutes_results(job_id, meeting_minutes)
 
+                # Update Meeting record in database
+                with app.app_context():
+                    from models import Meeting, db
+                    from datetime import datetime, timezone
+
+                    meeting = Meeting.query.get(meeting_id)
+                    if meeting:
+                        meeting_info = meeting_minutes.get('meeting_info', {})
+                        meeting.title = meeting_info.get('title', 'Transcript Meeting')
+                        meeting.status = 'completed'
+                        meeting.attendees = meeting_minutes.get('attendees', [])
+                        meeting.agenda_items = meeting_minutes.get('agenda_items', [])
+                        meeting.motions = meeting_minutes.get('motions', [])
+                        meeting.action_items = meeting_minutes.get('action_items', [])
+                        meeting.key_decisions = meeting_minutes.get('key_decisions', [])
+
+                        # Set file paths if available
+                        if results_path and os.path.exists(results_path):
+                            meeting.json_file_path = results_path
+                            # Look for generated HTML and DOCX files
+                            base_path = os.path.dirname(results_path)
+                            base_name = os.path.splitext(os.path.basename(results_path))[0]
+
+                            html_path = os.path.join(base_path, f"{base_name}.html")
+                            if os.path.exists(html_path):
+                                meeting.html_file_path = html_path
+
+                            docx_path = os.path.join(base_path, f"{base_name}.docx")
+                            if os.path.exists(docx_path):
+                                meeting.docx_file_path = docx_path
+
+                        db.session.commit()
+                        logger.info(f"Updated Meeting record {meeting_id} for job {job_id}")
+
                 job_tracker.update_job(job_id, status=JobStatus.COMPLETED, message='Meeting minutes generated successfully', result_file=results_path)
 
             except Exception as e:
                 logger.error(f"Transcript processing failed for job {job_id}: {str(e)}")
+                # Update meeting status to failed
+                try:
+                    with app.app_context():
+                        from models import Meeting, db
+                        meeting = Meeting.query.get(meeting_id)
+                        if meeting:
+                            meeting.status = 'failed'
+                            db.session.commit()
+                except:
+                    pass
                 job_tracker.update_job(job_id, status=JobStatus.FAILED, error=f'Processing failed: {str(e)}')
 
         # Start background processing
@@ -434,6 +502,53 @@ def process_transcript_file(file, job_id, form_data, storage_result):
 
                 # Store results
                 results_path = store_meeting_minutes_results(job_id, meeting_minutes)
+
+                # Create Meeting record in database
+                with app.app_context():
+                    from models import Meeting, db, User
+                    from datetime import datetime, timezone
+
+                    # Get user ID - use current_user if authenticated, otherwise use first available user
+                    user_id = current_user.id if current_user and current_user.is_authenticated else User.query.first().id
+
+                    meeting_info = meeting_minutes.get('meeting_info', {})
+                    meeting = Meeting(
+                        user_id=user_id,
+                        title=meeting_info.get('title', f"Meeting - {file.filename}"),
+                        description=f"Meeting processed from file upload: {file.filename}",
+                        meeting_date=datetime.now(timezone.utc),
+                        original_filename=file.filename,
+                        file_type=file.content_type,
+                        file_size=len(transcript_text),
+                        job_id=job_id,
+                        status='completed',
+                        transcript=transcript_text,
+                        attendees=meeting_minutes.get('attendees', []),
+                        agenda_items=meeting_minutes.get('agenda_items', []),
+                        motions=meeting_minutes.get('motions', []),
+                        action_items=meeting_minutes.get('action_items', []),
+                        key_decisions=meeting_minutes.get('key_decisions', []),
+                        processed_at=datetime.now(timezone.utc)
+                    )
+
+                    # Set file paths if available
+                    if results_path and os.path.exists(results_path):
+                        meeting.json_file_path = results_path
+                        # Look for generated HTML and DOCX files
+                        base_path = os.path.dirname(results_path)
+                        base_name = os.path.splitext(os.path.basename(results_path))[0]
+
+                        html_path = os.path.join(base_path, f"{base_name}.html")
+                        if os.path.exists(html_path):
+                            meeting.html_file_path = html_path
+
+                        docx_path = os.path.join(base_path, f"{base_name}.docx")
+                        if os.path.exists(docx_path):
+                            meeting.docx_file_path = docx_path
+
+                    db.session.add(meeting)
+                    db.session.commit()
+                    logger.info(f"Created Meeting record {meeting.id} for job {job_id}")
 
                 job_tracker.update_job(job_id, status=JobStatus.COMPLETED, message='Meeting minutes generated successfully', result_file=results_path)
 
