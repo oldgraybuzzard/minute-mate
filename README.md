@@ -1,8 +1,8 @@
-# 📋 MinuteMate
+# 📋 BoardMinutes
 
-**Professional AI-Powered Meeting Minutes Generator**
+**Professional AI-Powered Board Meeting Minutes**
 
-Transform your meeting recordings into professional, compliant minutes with advanced AI intelligence. MinuteMate is designed for professional boards, committees, team meetings, and governance sessions with enterprise-grade features and comprehensive admin tools.
+Transform your board meeting recordings into professional, compliant minutes with advanced AI intelligence. BoardMinutes is designed specifically for professional boards, committees, and governance meetings with enterprise-grade features and comprehensive admin tools.
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/minutemate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -75,8 +75,8 @@ Transform your meeting recordings into professional, compliant minutes with adva
 #### **Installation**
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/minute-mate.git
-cd minute-mate
+git clone https://github.com/yourusername/boardminutes.git
+cd boardminutes
 
 # Install dependencies
 pip install -r requirements.txt
@@ -136,7 +136,7 @@ python3 create_user.py list
 
 ## 🛡️ **Admin System**
 
-MinuteMate includes a comprehensive administration system for enterprise deployment and user management.
+BoardMinutes includes a comprehensive administration system for enterprise deployment and user management.
 
 ### **🖥️ Web Admin Panel**
 Access the professional admin interface at `/frontend/admin.html`:
@@ -286,7 +286,7 @@ See [Configuration Guide](docs/CONFIGURATION.md) for detailed settings.
 
 ### **Project Structure**
 ```
-minute-mate/
+boardminutes/
 ├── backend/                 # Flask API server
 │   ├── app.py              # Main Flask application
 │   ├── models.py           # SQLAlchemy database models
@@ -336,7 +336,7 @@ See [Contributing Guide](docs/CONTRIBUTING.md) for detailed instructions.
 
 ## 🎉 **Success Stories**
 
-> *"MinuteMate reduced our meeting documentation time by 85%. The AI learning feature means our minutes get better every week!"*
+> *"BoardMinutes reduced our meeting documentation time by 85%. The AI learning feature means our minutes get better every week!"*
 > **— Sarah Chen, Operations Director**
 
 > *"The Robert's Rules compliance feature is perfect for our board meetings. Professional results every time."*
@@ -349,10 +349,10 @@ See [Contributing Guide](docs/CONTRIBUTING.md) for detailed instructions.
 
 ## 🤝 **Support & Community**
 
-- **📧 Email:** support@minutemate.com
-- **💬 Discord:** [Join our community](https://discord.gg/minutemate)
-- **🐛 Issues:** [GitHub Issues](https://github.com/yourusername/minute-mate/issues)
-- **📖 Docs:** [Documentation Site](https://docs.minutemate.com)
+- **📧 Email:** support@boardminutes.com
+- **💬 Discord:** [Join our community](https://discord.gg/boardminutes)
+- **🐛 Issues:** [GitHub Issues](https://github.com/yourusername/boardminutes/issues)
+- **📖 Docs:** [Documentation Site](https://docs.boardminutes.com)
 
 ---
 

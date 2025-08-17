@@ -1,5 +1,5 @@
 /**
- * MinuteMate Admin Panel JavaScript
+ * BoardMinutes Admin Panel JavaScript
  * Handles admin functionality for user management and system administration
  */
 

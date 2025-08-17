@@ -1,10 +1,10 @@
-# 👥 MinuteMate Admin Guide
+# 👥 BoardMinutes Admin Guide
 
-Complete guide for administering MinuteMate, including user management, system monitoring, and security features.
+Complete guide for administering BoardMinutes, including user management, system monitoring, and security features.
 
 ## 🛡️ **Admin System Overview**
 
-MinuteMate provides a comprehensive administration system with both web-based and command-line interfaces for managing users, monitoring system health, and maintaining security.
+BoardMinutes provides a comprehensive administration system with both web-based and command-line interfaces for managing users, monitoring system health, and maintaining security.
 
 ### **Key Features**
 - **Web Admin Panel**: Modern, responsive interface for all admin tasks
@@ -275,7 +275,7 @@ For additional support:
 - **Documentation**: Check other docs in the `/docs` folder
 - **Issues**: Report bugs on GitHub Issues
 - **Community**: Join our Discord community
-- **Email**: Contact support@minutemate.com
+- **Email**: Contact support@boardminutes.com
 
 ---
 

@@ -1,6 +1,6 @@
-# MinuteMate Backend
+# BoardMinutes Backend
 
-The MinuteMate backend is a comprehensive Flask-based API server that handles user authentication, file uploads, meeting processing, and provides enterprise-grade admin tools for user management and system monitoring.
+The BoardMinutes backend is a comprehensive Flask-based API server that handles user authentication, file uploads, meeting processing, and provides enterprise-grade admin tools for user management and system monitoring.
 
 ## 🏗️ Architecture
 
